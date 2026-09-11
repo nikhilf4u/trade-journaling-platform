@@ -506,26 +506,210 @@ public interface AnalyticsRepository extends JpaRepository<Trade, Long> {
     Map<String, Object> getRevengeTrading(@Param("userId") Long userId);
 
     // ================================================================
-// 📊 CAPTURE RATIO — % of potential profit captured on winners
+// 🗓️ CALENDAR DATA — Daily P&L aggregation
 // ================================================================
     @Query(value = """
-    WITH winners AS (
+    SELECT 
+        DATE(entry_date) AS trade_date,
+        COUNT(*) AS trade_count,
+        ROUND(SUM(pnl)::NUMERIC, 2) AS total_pnl,
+        ROUND(AVG(pnl)::NUMERIC, 2) AS avg_pnl,
+        SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) AS win_count,
+        SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) AS loss_count,
+        ROUND(
+            (SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*))::NUMERIC,
+            1
+        ) AS win_rate
+    FROM trades
+    WHERE user_id = :userId
+        AND entry_date >= CAST(:startDate AS TIMESTAMP)
+        AND entry_date < CAST(:endDate AS TIMESTAMP)
+    GROUP BY DATE(entry_date)
+    ORDER BY trade_date
+    """, nativeQuery = true)
+    List<Map<String, Object>> getCalendarData(
+            @Param("userId") Long userId,
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate
+    );
+
+    // ================================================================
+// 🎯 TARGET HIT RATE (derived from MFE)
+// ================================================================
+    @Query(value = """
+    WITH analysis AS (
         SELECT 
+            id,
+            target,
+            mfe,
+            direction,
             CASE 
-                WHEN target IS NOT NULL 
-                    AND ABS(target - entry_price) > 0
-                THEN (exit_price - entry_price) / (target - entry_price)
+                WHEN target IS NULL OR mfe IS NULL THEN NULL
+                WHEN direction = 'BUY' AND mfe >= target THEN true
+                WHEN direction = 'SELL' AND mfe <= target THEN true
+                ELSE false
+            END AS target_hit
+        FROM trades
+        WHERE user_id = :userId
+    )
+    SELECT 
+        COUNT(*) FILTER (WHERE target IS NOT NULL AND mfe IS NOT NULL) AS trades_with_data,
+        COUNT(*) FILTER (WHERE target_hit = true) AS target_hits,
+        COUNT(*) FILTER (WHERE target_hit = false) AS target_misses,
+        ROUND(
+            (COUNT(*) FILTER (WHERE target_hit = true) * 100.0 / 
+             NULLIF(COUNT(*) FILTER (WHERE target IS NOT NULL AND mfe IS NOT NULL), 0))::NUMERIC,
+            1
+        ) AS target_hit_rate
+    FROM analysis
+    """, nativeQuery = true)
+    Map<String, Object> getTargetHitStats(@Param("userId") Long userId);
+
+    // ================================================================
+// 📊 CAPTURE RATIO — % of the potential move you captured
+// ================================================================
+    @Query(value = """
+    WITH analysis AS (
+        SELECT 
+            id,
+            entry_price,
+            exit_price,
+            mfe,
+            direction,
+            CASE 
+                WHEN mfe IS NULL OR entry_price IS NULL THEN NULL
+                WHEN direction = 'BUY' AND mfe > entry_price 
+                    THEN (exit_price - entry_price) / (mfe - entry_price)
+                WHEN direction = 'SELL' AND mfe < entry_price 
+                    THEN (entry_price - exit_price) / (entry_price - mfe)
                 ELSE NULL
             END AS capture_ratio
         FROM trades
         WHERE user_id = :userId
             AND pnl > 0
-            AND target IS NOT NULL
     )
     SELECT 
-        ROUND(AVG(capture_ratio * 100)::NUMERIC, 2) AS avg_capture_pct
-    FROM winners
+        ROUND((AVG(capture_ratio) * 100)::NUMERIC, 1) AS avg_capture_pct,
+        ROUND((MIN(capture_ratio) * 100)::NUMERIC, 1) AS worst_capture_pct,
+        ROUND((MAX(capture_ratio) * 100)::NUMERIC, 1) AS best_capture_pct,
+        COUNT(*) AS trades_analyzed
+    FROM analysis
     WHERE capture_ratio IS NOT NULL
     """, nativeQuery = true)
     Map<String, Object> getCaptureRatio(@Param("userId") Long userId);
+
+    // ================================================================
+// 💰 MISSED R-MULTIPLES — Extra R left on the table per trade
+// ================================================================
+    @Query(value = """
+    WITH analysis AS (
+        SELECT 
+            id,
+            symbol,
+            direction,
+            entry_price,
+            exit_price,
+            mfe,
+            stoploss,
+            pnl,
+            CASE 
+                WHEN mfe IS NULL 
+                    OR stoploss IS NULL 
+                    OR entry_price = stoploss
+                THEN NULL
+                WHEN direction = 'BUY' THEN
+                    ((mfe - exit_price) * quantity) / 
+                    NULLIF(ABS(entry_price - stoploss) * quantity, 0)
+                WHEN direction = 'SELL' THEN
+                    ((exit_price - mfe) * quantity) / 
+                    NULLIF(ABS(stoploss - entry_price) * quantity, 0)
+                ELSE NULL
+            END AS missed_r
+        FROM trades
+        WHERE user_id = :userId
+            AND pnl > 0
+    )
+    SELECT 
+        ROUND(AVG(missed_r)::NUMERIC, 2) AS avg_missed_r,
+        ROUND(MAX(missed_r)::NUMERIC, 2) AS worst_missed_r,
+        ROUND(SUM(missed_r)::NUMERIC, 2) AS total_missed_r,
+        COUNT(*) FILTER (WHERE missed_r > 0) AS trades_with_missed_r
+    FROM analysis
+    WHERE missed_r IS NOT NULL
+    """, nativeQuery = true)
+    Map<String, Object> getMissedRAnalysis(@Param("userId") Long userId);
+
+    // ================================================================
+// 📊 MFE vs TARGET — Were your targets too conservative?
+// ================================================================
+    @Query(value = """
+    WITH analysis AS (
+        SELECT 
+            id,
+            target,
+            mfe,
+            entry_price,
+            direction,
+            CASE 
+                WHEN target IS NULL OR mfe IS NULL OR entry_price IS NULL THEN NULL
+                WHEN direction = 'BUY' 
+                    THEN (mfe - entry_price) / NULLIF(target - entry_price, 0)
+                WHEN direction = 'SELL' 
+                    THEN (entry_price - mfe) / NULLIF(entry_price - target, 0)
+                ELSE NULL
+            END AS mfe_to_target_ratio
+        FROM trades
+        WHERE user_id = :userId
+    )
+    SELECT 
+        ROUND(AVG(mfe_to_target_ratio)::NUMERIC, 2) AS avg_mfe_target_ratio,
+        COUNT(*) FILTER (WHERE mfe_to_target_ratio > 1.5) AS undertarget_moves,
+        COUNT(*) FILTER (WHERE mfe_to_target_ratio BETWEEN 0.9 AND 1.1) AS accurate_targets,
+        COUNT(*) FILTER (WHERE mfe_to_target_ratio < 0.5) AS overambitious_targets
+    FROM analysis
+    WHERE mfe_to_target_ratio IS NOT NULL
+    """, nativeQuery = true)
+    Map<String, Object> getMfeVsTarget(@Param("userId") Long userId);
+
+    // ================================================================
+// 📋 PER-TRADE MFE ANALYSIS — For displaying in the drawer
+// ================================================================
+    @Query(value = """
+    SELECT 
+        t.id,
+        t.symbol,
+        t.direction,
+        t.entry_price,
+        t.exit_price,
+        t.mfe,
+        t.target,
+        t.stoploss,
+        t.pnl,
+        CASE 
+            WHEN t.mfe IS NULL THEN NULL
+            WHEN t.direction = 'BUY' THEN t.mfe - t.entry_price
+            ELSE t.entry_price - t.mfe
+        END AS potential_move,
+        CASE 
+            WHEN t.mfe IS NULL THEN NULL
+            WHEN t.direction = 'BUY' THEN t.exit_price - t.entry_price
+            ELSE t.entry_price - t.exit_price
+        END AS actual_move,
+        CASE 
+            WHEN t.mfe IS NULL OR t.entry_price = t.stoploss THEN NULL
+            WHEN t.direction = 'BUY' THEN 
+                ((t.mfe - t.exit_price) * t.quantity) / 
+                NULLIF(ABS(t.entry_price - t.stoploss) * t.quantity, 0)
+            ELSE 
+                ((t.exit_price - t.mfe) * t.quantity) / 
+                NULLIF(ABS(t.stoploss - t.entry_price) * t.quantity, 0)
+        END AS missed_r
+    FROM trades t
+    WHERE t.user_id = :userId
+        AND t.id = :tradeId
+    """, nativeQuery = true)
+    Map<String, Object> getTradeMfeAnalysis(
+            @Param("userId") Long userId,
+            @Param("tradeId") Long tradeId
+    );
 }

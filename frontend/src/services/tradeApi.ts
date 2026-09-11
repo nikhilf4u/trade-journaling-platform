@@ -21,6 +21,8 @@ export interface Trade {
   quoteCurrency: string;
   stoploss?: number;
   target?: number;
+  mfe?: number;
+  mae?: number; 
   longTimeFrameBias?: string;
   pnl?: number;
   entryDate: string;
@@ -28,6 +30,7 @@ export interface Trade {
   notes?: string;
   screenshots?: TradeScreenshot[];
   createdAt?: string;
+  
 }
 
 const unwrap = <T>(response: any): T => response.data?.data ?? response.data;

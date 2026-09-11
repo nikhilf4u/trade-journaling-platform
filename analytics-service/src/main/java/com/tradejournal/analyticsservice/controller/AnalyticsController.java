@@ -120,4 +120,30 @@ public class AnalyticsController {
         return ResponseEntity.ok(
                 ApiResponse.success(analyticsService.getStopLossAdherence(userId)));
     }
+
+    @GetMapping("/calendar")
+    public ResponseEntity<?> getCalendar(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+
+        Long userId = getUserIdFromHeader(authHeader);
+
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int y = year != null ? year : now.getYear();
+        int m = month != null ? month : now.getMonthValue();
+
+        return ResponseEntity.ok(
+                ApiResponse.success(analyticsService.getCalendarData(userId, y, m)));
+    }
+
+    @GetMapping("/trade/{tradeId}/mfe")
+    public ResponseEntity<?> getTradeMfe(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long tradeId) {
+
+        Long userId = getUserIdFromHeader(authHeader);
+        return ResponseEntity.ok(
+                ApiResponse.success(analyticsService.getTradeMfeAnalysis(userId, tradeId)));
+    }
 }

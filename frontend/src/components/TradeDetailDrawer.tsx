@@ -14,6 +14,7 @@ import {
   Col,
   Card,
   Tooltip,
+  Alert,
 } from 'antd';
 import {
   EditOutlined,
@@ -25,6 +26,7 @@ import {
   AimOutlined,
   SafetyOutlined,
   TrophyOutlined,
+  FireOutlined,
 } from '@ant-design/icons';
 import type { Trade } from '../services/tradeApi';
 import dayjs from 'dayjs';
@@ -39,7 +41,9 @@ interface Props {
   onDelete: (trade: Trade) => void;
 }
 
-// ---------- Helper calculations ----------
+// ----------------------------------------------------------
+// Helper calculations
+// ----------------------------------------------------------
 const calculateHoldTime = (entry?: string, exit?: string): string => {
   if (!entry || !exit) return '—';
   const diffMs = dayjs(exit).diff(dayjs(entry));
@@ -74,7 +78,54 @@ const calculateRMultiple = (trade: Trade): number | null => {
   return trade.pnl / riskAmount;
 };
 
-// ---------- Bias label helper ----------
+// ----------------------------------------------------------
+// MFE analysis
+// ----------------------------------------------------------
+interface MfeAnalysis {
+  potentialMove: number;      // how much the price moved in your favor
+  actualMove: number;         // how much you actually captured
+  capturedPct: number;        // % of potential you captured
+  missedR: number;            // extra R left on the table
+  targetHit: boolean | null;  // derived from MFE vs target
+}
+
+const calculateMfeAnalysis = (trade: Trade): MfeAnalysis | null => {
+  if (!trade.mfe || !trade.entryPrice) return null;
+
+  const isBuy = trade.direction === 'BUY';
+  const potentialMove = isBuy
+    ? trade.mfe - trade.entryPrice
+    : trade.entryPrice - trade.mfe;
+  const actualMove = isBuy
+    ? trade.exitPrice - trade.entryPrice
+    : trade.entryPrice - trade.exitPrice;
+  const capturedPct = potentialMove !== 0 ? (actualMove / potentialMove) * 100 : 0;
+
+  // Missed R
+  let missedR = 0;
+  if (trade.stoploss) {
+    const risk = Math.abs(trade.entryPrice - trade.stoploss);
+    if (risk > 0) {
+      missedR = isBuy
+        ? (trade.mfe - trade.exitPrice) / risk
+        : (trade.exitPrice - trade.mfe) / risk;
+    }
+  }
+
+  // Target hit
+  let targetHit: boolean | null = null;
+  if (trade.target) {
+    targetHit = isBuy
+      ? trade.mfe >= trade.target
+      : trade.mfe <= trade.target;
+  }
+
+  return { potentialMove, actualMove, capturedPct, missedR, targetHit };
+};
+
+// ----------------------------------------------------------
+// Bias info helper
+// ----------------------------------------------------------
 const getBiasInfo = (bias?: string) => {
   const map: Record<string, { color: string; label: string }> = {
     STRONG_BULLISH: { color: 'green', label: '🟢🟢 Strong Bullish' },
@@ -86,6 +137,9 @@ const getBiasInfo = (bias?: string) => {
   return map[bias || ''] || { color: 'default', label: bias || '—' };
 };
 
+// ============================================================
+// Component
+// ============================================================
 export const TradeDetailDrawer: React.FC<Props> = ({
   open,
   trade,
@@ -100,6 +154,7 @@ export const TradeDetailDrawer: React.FC<Props> = ({
       riskAmount: calculateRiskAmount(trade),
       plannedRR: calculatePlannedRR(trade),
       rMultiple: calculateRMultiple(trade),
+      mfe: calculateMfeAnalysis(trade),
     };
   }, [trade]);
 
@@ -119,6 +174,7 @@ export const TradeDetailDrawer: React.FC<Props> = ({
             {trade.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL'}
           </Tag>
           <Tag color="blue">{trade.market}</Tag>
+          {trade.instrumentType && <Tag>{trade.instrumentType}</Tag>}
         </Space>
       }
       placement="right"
@@ -128,17 +184,10 @@ export const TradeDetailDrawer: React.FC<Props> = ({
       closeIcon={<CloseOutlined />}
       extra={
         <Space>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => onEdit(trade)}
-          >
+          <Button icon={<EditOutlined />} onClick={() => onEdit(trade)}>
             Edit
           </Button>
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => onDelete(trade)}
-          >
+          <Button danger icon={<DeleteOutlined />} onClick={() => onDelete(trade)}>
             Delete
           </Button>
         </Space>
@@ -178,8 +227,8 @@ export const TradeDetailDrawer: React.FC<Props> = ({
               </span>
             </div>
           </Col>
-          <Col>
-            {metrics?.rMultiple != null && (
+          {metrics?.rMultiple != null && (
+            <Col>
               <Tooltip title="R-Multiple: Profit divided by initial risk">
                 <div style={{ textAlign: 'center' }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
@@ -197,8 +246,8 @@ export const TradeDetailDrawer: React.FC<Props> = ({
                   </div>
                 </div>
               </Tooltip>
-            )}
-          </Col>
+            </Col>
+          )}
         </Row>
       </Card>
 
@@ -292,6 +341,93 @@ export const TradeDetailDrawer: React.FC<Props> = ({
       </Descriptions>
 
       {/* ============================================ */}
+      {/* Move Analysis (MFE) */}
+      {/* ============================================ */}
+      {metrics?.mfe && (
+        <>
+          <Divider orientation="left" style={{ marginTop: 24 }}>
+            <Space>
+              <TrophyOutlined />
+              <span>Move Analysis</span>
+            </Space>
+          </Divider>
+
+          <Descriptions column={2} size="small" bordered>
+            <Descriptions.Item label="Best Price (MFE)">
+              <Text style={{ color: '#52c41a', fontWeight: 600 }}>
+                {trade.mfe?.toFixed(2)}
+              </Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Potential Move">
+              <Text>{metrics.mfe.potentialMove.toFixed(2)} pts</Text>
+            </Descriptions.Item>
+
+            <Descriptions.Item label="Actual Exit">
+              <Text strong>{trade.exitPrice.toFixed(2)}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Captured">
+              <Text
+                strong
+                style={{
+                  color:
+                    metrics.mfe.capturedPct >= 70
+                      ? '#52c41a'
+                      : metrics.mfe.capturedPct >= 40
+                      ? '#faad14'
+                      : '#ff4d4f',
+                }}
+              >
+                {metrics.mfe.capturedPct.toFixed(1)}%
+              </Text>
+            </Descriptions.Item>
+
+            {trade.target && (
+              <Descriptions.Item label="Target Hit?" span={2}>
+                {metrics.mfe.targetHit === true ? (
+                  <Tag color="green">✅ Yes — MFE reached target</Tag>
+                ) : metrics.mfe.targetHit === false ? (
+                  <Tag color="red">❌ No — MFE never reached target</Tag>
+                ) : (
+                  <Text type="secondary">—</Text>
+                )}
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+
+          {/* Missed R Alert */}
+          {metrics.mfe.missedR > 0.2 && (
+            <Alert
+              type={metrics.mfe.missedR >= 1 ? 'warning' : 'info'}
+              showIcon
+              icon={<FireOutlined />}
+              style={{ marginTop: 12 }}
+              message={
+                <span>
+                  You left{' '}
+                  <strong style={{ color: '#faad14' }}>
+                    +{metrics.mfe.missedR.toFixed(2)}R
+                  </strong>{' '}
+                  on the table.
+                  {metrics.mfe.missedR >= 1
+                    ? ' Consider holding longer or using a trailing stop.'
+                    : ' Solid exit — only minor left on the table.'}
+                </span>
+              }
+            />
+          )}
+
+          {metrics.mfe.missedR <= 0.2 && metrics.mfe.capturedPct >= 70 && (
+            <Alert
+              type="success"
+              showIcon
+              style={{ marginTop: 12 }}
+              message="Excellent exit! You captured most of the move."
+            />
+          )}
+        </>
+      )}
+
+      {/* ============================================ */}
       {/* Timeline */}
       {/* ============================================ */}
       <Divider orientation="left" style={{ marginTop: 24 }}>
@@ -310,9 +446,6 @@ export const TradeDetailDrawer: React.FC<Props> = ({
         </Descriptions.Item>
         <Descriptions.Item label="Hold Time" span={2}>
           <Tag color="blue">{metrics?.holdTime}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label="Instrument" span={2}>
-          <Tag>{trade.instrumentType || '—'}</Tag>
         </Descriptions.Item>
       </Descriptions>
 

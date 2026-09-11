@@ -11,6 +11,8 @@ import {
   SearchOutlined,
   SunOutlined,
   MoonOutlined,
+  AppstoreOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -39,8 +41,10 @@ const MainLayout: React.FC = () => {
 
   const menuData = [
     { path: '/dashboard', name: 'Dashboard', icon: <DashboardOutlined /> },
+    { path: '/overview', name: 'Overview', icon: <AppstoreOutlined /> },  
     { path: '/trades', name: 'My Trades', icon: <UnorderedListOutlined /> },
     { path: '/analytics', name: 'Analytics', icon: <LineChartOutlined /> },
+    { path: '/calendar', name: 'Calendar', icon: <CalendarOutlined /> },     
   ];
 
   return (

@@ -107,6 +107,10 @@ public class AnalyticsService {
         summary.putAll(getRevengeTrading(userId));
         summary.putAll(getCaptureRatio(userId));
         summary.putAll(getDisciplineScore(userId));
+        summary.putAll(getTargetHitStats(userId));
+        summary.putAll(getCaptureRatio(userId));
+        summary.putAll(getMissedRAnalysis(userId));
+        summary.putAll(getMfeVsTarget(userId));
 
         dashboard.put("summary", summary);
         dashboard.put("equityCurve", getEquityCurve(userId));
@@ -115,6 +119,7 @@ public class AnalyticsService {
         dashboard.put("biasPerformance", getBiasPerformance(userId));
         dashboard.put("rMultipleDistribution", getRMultipleDistribution(userId));
         dashboard.put("dayOfWeekPerformance", getDayOfWeekPerformance(userId));
+
         return dashboard;
     }
 
@@ -134,7 +139,10 @@ public class AnalyticsService {
                     "streakStats", "dayOfWeekPerformance",
                     // ⭐ Behavioral
                     "overtradingStats", "riskConsistency", "exitDiscipline",
-                    "revengeTrading", "captureRatio"
+                    "revengeTrading", "captureRatio", "calendarData",  "targetHitStats",
+                    "captureRatio",
+                    "missedRAnalysis",
+                    "mfeVsTarget"
             },
             key = "#userId"
     )
@@ -233,13 +241,6 @@ public class AnalyticsService {
         return raw != null ? raw : new HashMap<>();
     }
 
-    @Cacheable(value = "captureRatio", key = "#userId")
-    public Map<String, Object> getCaptureRatio(Long userId) {
-        log.info("🔍 DB HIT: Capture ratio for user {}", userId);
-        Map<String, Object> raw = analyticsRepository.getCaptureRatio(userId);
-        return raw != null ? raw : new HashMap<>();
-    }
-
     /**
      * Composite Discipline Score (0-100)
      * Weighted average of:
@@ -330,5 +331,57 @@ public class AnalyticsService {
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+
+    @Cacheable(value = "calendarData", key = "#userId + ':' + #year + ':' + #month")
+    public List<Map<String, Object>> getCalendarData(Long userId, int year, int month) {
+        log.info("🔍 DB HIT: Calendar data for user {} ({}/{})", userId, year, month);
+
+        // First day of month
+        java.time.LocalDate startDate = java.time.LocalDate.of(year, month, 1);
+        // First day of next month
+        java.time.LocalDate endDate = startDate.plusMonths(1);
+
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        return analyticsRepository.getCalendarData(
+                userId,
+                startDate.atStartOfDay().format(fmt),
+                endDate.atStartOfDay().format(fmt)
+        );
+    }
+
+    @Cacheable(value = "targetHitStats", key = "#userId")
+    public Map<String, Object> getTargetHitStats(Long userId) {
+        log.info("🔍 DB HIT: Target hit stats for user {}", userId);
+        Map<String, Object> raw = analyticsRepository.getTargetHitStats(userId);
+        return raw != null ? raw : new HashMap<>();
+    }
+
+    @Cacheable(value = "captureRatio", key = "#userId")
+    public Map<String, Object> getCaptureRatio(Long userId) {
+        log.info("🔍 DB HIT: Capture ratio for user {}", userId);
+        Map<String, Object> raw = analyticsRepository.getCaptureRatio(userId);
+        return raw != null ? raw : new HashMap<>();
+    }
+
+    @Cacheable(value = "missedRAnalysis", key = "#userId")
+    public Map<String, Object> getMissedRAnalysis(Long userId) {
+        log.info("🔍 DB HIT: Missed R analysis for user {}", userId);
+        Map<String, Object> raw = analyticsRepository.getMissedRAnalysis(userId);
+        return raw != null ? raw : new HashMap<>();
+    }
+
+    @Cacheable(value = "mfeVsTarget", key = "#userId")
+    public Map<String, Object> getMfeVsTarget(Long userId) {
+        log.info("🔍 DB HIT: MFE vs Target for user {}", userId);
+        Map<String, Object> raw = analyticsRepository.getMfeVsTarget(userId);
+        return raw != null ? raw : new HashMap<>();
+    }
+
+    public Map<String, Object> getTradeMfeAnalysis(Long userId, Long tradeId) {
+        // Not cached — per-trade detail
+        Map<String, Object> raw = analyticsRepository.getTradeMfeAnalysis(userId, tradeId);
+        return raw != null ? raw : new HashMap<>();
     }
 }

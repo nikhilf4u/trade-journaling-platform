@@ -67,6 +67,8 @@ public class TradeService {
         // Trade metrics
         existing.setEntryPrice(updatedTrade.getEntryPrice());
         existing.setExitPrice(updatedTrade.getExitPrice());
+        existing.setMfe(updatedTrade.getMfe());
+        existing.setMae(updatedTrade.getMae());
         existing.setQuantity(updatedTrade.getQuantity());
         existing.setEntryDate(updatedTrade.getEntryDate());
         existing.setExitDate(updatedTrade.getExitDate());

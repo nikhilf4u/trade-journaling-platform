@@ -9,14 +9,13 @@ import {
   Button,
   message,
   Upload,
-  Tag,
   Space,
+  Tag,
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import dayjs from 'dayjs';
 import { tradeApi, Trade } from '../services/tradeApi';
-import { notifySuccess } from '../utils/notify';
 
 interface Props {
   open: boolean;
@@ -82,7 +81,6 @@ export const TradeFormModal: React.FC<Props> = ({
         })
       );
 
-      console.log('📥 Loaded existing screenshots:', existingFiles);
       setFileList(existingFiles);
       setRemovedScreenshotIds([]);
     } else {
@@ -101,29 +99,22 @@ export const TradeFormModal: React.FC<Props> = ({
   }, [editingTrade, form]);
 
   // ----------------------------------------------------------
-  // Track removals immediately in onChange
+  // Track removals in onChange
   // ----------------------------------------------------------
   const handleUploadChange = ({
     fileList: newList,
   }: {
     fileList: UploadFile[];
   }) => {
-    console.log('🔄 Upload onChange. New list:', newList.map(f => f.uid));
-
-    // Find files that were in old list but not in new
     const newUids = new Set(newList.map((f) => f.uid));
     const removedFiles = fileList.filter((f) => !newUids.has(f.uid));
 
-    console.log('🗑️ Removed files detected:', removedFiles.map(f => f.uid));
-
-    // For each removed file with uid "existing-<id>", extract the db id
     removedFiles.forEach((f) => {
       const uidStr = String(f.uid);
       if (uidStr.startsWith('existing-')) {
         const idStr = uidStr.replace('existing-', '');
         const id = parseInt(idStr, 10);
         if (!isNaN(id)) {
-          console.warn(`⚠️ Marking screenshot ${id} for deletion`);
           setRemovedScreenshotIds((prev) =>
             prev.includes(id) ? prev : [...prev, id]
           );
@@ -142,6 +133,7 @@ export const TradeFormModal: React.FC<Props> = ({
       const values = await form.validateFields();
       setLoading(true);
 
+      // ⭐ Clean payload — only editable fields
       const payload: Trade = {
         market: values.market,
         symbol: values.symbol.toUpperCase(),
@@ -153,37 +145,34 @@ export const TradeFormModal: React.FC<Props> = ({
         quoteCurrency: values.quoteCurrency,
         stoploss: values.stoploss,
         target: values.target,
+        mfe: values.mfe,                    // ⭐ NEW
+        mae: values.mae,                    // ⭐ NEW
         longTimeFrameBias: values.longTimeFrameBias,
         entryDate: values.entryDate.toISOString(),
         exitDate: values.exitDate.toISOString(),
         notes: values.notes,
       };
 
-      // 1. Save/Update trade
       let savedTrade: Trade;
+
       if (isEditing && editingTrade?.id) {
         savedTrade = await tradeApi.update(editingTrade.id, payload);
       } else {
         savedTrade = await tradeApi.create(payload);
       }
 
-      // 2. Delete removed screenshots
+      // 1. Delete removed screenshots
       if (isEditing && editingTrade?.id && removedScreenshotIds.length > 0) {
-        console.warn('🗑️ Deleting screenshots:', removedScreenshotIds);
-
         for (const screenshotId of removedScreenshotIds) {
           try {
             await tradeApi.deleteScreenshot(editingTrade.id, screenshotId);
-            console.log(`✅ Deleted screenshot ${screenshotId}`);
           } catch (err) {
-            console.error(`❌ Failed to delete screenshot ${screenshotId}:`, err);
+            console.warn('Failed to delete screenshot', screenshotId, err);
           }
         }
-      } else {
-        console.log('ℹ️ No screenshots to delete. removedScreenshotIds =', removedScreenshotIds);
       }
 
-      // 3. Upload new screenshots
+      // 2. Upload new screenshots
       if (savedTrade.id) {
         const newFiles: File[] = fileList
           .map((f) => f.originFileObj)
@@ -191,19 +180,14 @@ export const TradeFormModal: React.FC<Props> = ({
 
         if (newFiles.length > 0) {
           await tradeApi.uploadScreenshots(savedTrade.id, newFiles);
-          console.log(`📤 Uploaded ${newFiles.length} new screenshot(s)`);
         }
       }
-notifySuccess(
-  isEditing ? 'Trade Updated' : 'Trade Created',
-  isEditing 
-    ? 'Your changes have been saved.' 
-    : 'Your trade has been added to the journal.'
-);
+
+      message.success(isEditing ? 'Trade updated!' : 'Trade created!');
       onSuccess();
       onClose();
     } catch (err: any) {
-      if (err.errorFields) return;
+      if (err.errorFields) return; // validation errors
       console.error('❌ Save trade error:', err);
       message.error(
         err.response?.data?.error ||
@@ -221,7 +205,7 @@ notifySuccess(
       title={isEditing ? '✏️ Edit Trade' : '📝 Log New Trade'}
       open={open}
       onCancel={onClose}
-      width={750}
+      width={820}
       footer={[
         <Button key="cancel" onClick={onClose}>
           Cancel
@@ -237,20 +221,22 @@ notifySuccess(
       ]}
     >
       <Form form={form} layout="vertical">
-        {/* ⭐ Visible debug info */}
+        {/* Debug info (only when editing) */}
         {isEditing && (
           <div style={{ marginBottom: 16 }}>
             <Space wrap>
-              <Tag color="blue">Existing: {editingTrade?.screenshots?.length || 0}</Tag>
+              <Tag color="blue">
+                Existing: {editingTrade?.screenshots?.length || 0}
+              </Tag>
               <Tag color="green">In UI: {fileList.length}</Tag>
               <Tag color="red">To Delete: {removedScreenshotIds.length}</Tag>
-              {removedScreenshotIds.length > 0 && (
-                <Tag color="volcano">IDs: {removedScreenshotIds.join(', ')}</Tag>
-              )}
             </Space>
           </div>
         )}
 
+        {/* ============================================ */}
+        {/* Row 1: Trade Identity */}
+        {/* ============================================ */}
         <div
           style={{
             display: 'grid',
@@ -258,17 +244,31 @@ notifySuccess(
             gap: 16,
           }}
         >
-          <Form.Item label="Market" name="market" rules={[{ required: true }]}>
+          <Form.Item
+            label="Market"
+            name="market"
+            rules={[{ required: true, message: 'Market is required' }]}
+          >
             <Select options={MARKETS} size="large" />
           </Form.Item>
-          <Form.Item label="Symbol" name="symbol" rules={[{ required: true }]}>
+
+          <Form.Item
+            label="Symbol"
+            name="symbol"
+            rules={[{ required: true, message: 'Symbol is required' }]}
+          >
             <Input placeholder="e.g., NIFTY, AAPL" size="large" />
           </Form.Item>
 
           <Form.Item label="Instrument Type" name="instrumentType">
             <Select options={INSTRUMENTS} size="large" />
           </Form.Item>
-          <Form.Item label="Direction" name="direction" rules={[{ required: true }]}>
+
+          <Form.Item
+            label="Direction"
+            name="direction"
+            rules={[{ required: true }]}
+          >
             <Select
               size="large"
               options={[
@@ -277,15 +277,68 @@ notifySuccess(
               ]}
             />
           </Form.Item>
+        </div>
 
-          <Form.Item label="Entry Price" name="entryPrice" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} size="large" min={0} step={0.01} />
-          </Form.Item>
-          <Form.Item label="Exit Price" name="exitPrice" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} size="large" min={0} step={0.01} />
+        {/* ============================================ */}
+        {/* Row 2: Prices & Quantity */}
+        {/* ============================================ */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 16,
+          }}
+        >
+          <Form.Item
+            label="Entry Price"
+            name="entryPrice"
+            rules={[{ required: true, message: 'Entry price is required' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              size="large"
+              min={0}
+              step={0.01}
+            />
           </Form.Item>
 
-          <Form.Item label="Stop Loss" name="stoploss">
+          <Form.Item
+            label="Exit Price"
+            name="exitPrice"
+            rules={[{ required: true, message: 'Exit price is required' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              size="large"
+              min={0}
+              step={0.01}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Quantity"
+            name="quantity"
+            rules={[{ required: true, message: 'Quantity is required' }]}
+          >
+            <InputNumber style={{ width: '100%' }} size="large" min={1} />
+          </Form.Item>
+        </div>
+
+        {/* ============================================ */}
+        {/* Row 3: Planning (Stop Loss & Target) */}
+        {/* ============================================ */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 16,
+          }}
+        >
+          <Form.Item
+            label="Stop Loss"
+            name="stoploss"
+            tooltip="The price at which you'd exit if the trade goes against you"
+          >
             <InputNumber
               style={{ width: '100%' }}
               size="large"
@@ -294,21 +347,19 @@ notifySuccess(
               placeholder="e.g., 22400.00"
             />
           </Form.Item>
+
           <Form.Item
-  label="Target (Take Profit)"
-  name="target"
-  tooltip="The price at which you plan to exit for a profit"
->
-  <InputNumber
-    style={{ width: '100%' }}
-    size="large"
-    min={0}
-    step={0.01}
-    placeholder="e.g., 22800.00"
-  />
-</Form.Item>
-          <Form.Item label="Quantity" name="quantity" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} size="large" min={1} />
+            label="Target (Take Profit)"
+            name="target"
+            tooltip="The price at which you plan to exit for a profit"
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              size="large"
+              min={0}
+              step={0.01}
+              placeholder="e.g., 22800.00"
+            />
           </Form.Item>
 
           <Form.Item label="Quote Currency" name="quoteCurrency" rules={[{ required: true }]}>
@@ -321,22 +372,93 @@ notifySuccess(
               ]}
             />
           </Form.Item>
-          <Form.Item label="Higher Time Frame Bias" name="longTimeFrameBias">
+        </div>
+
+        {/* ============================================ */}
+        {/* Row 4: MFE / MAE Analysis */}
+        {/* ============================================ */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 16,
+          }}
+        >
+          <Form.Item
+            label="Best Price Reached (MFE)"
+            name="mfe"
+            tooltip="The best price reached after entry. For BUY = swing high. For SELL = swing low. Tells us how much move you could have captured."
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              size="large"
+              step={0.01}
+              placeholder="e.g., 22900"
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Worst Price Reached (MAE)"
+            name="mae"
+            tooltip="The worst price reached after entry. For BUY = swing low. For SELL = swing high. Tells us how close you were to being stopped out."
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              size="large"
+              step={0.01}
+              placeholder="e.g., 22420"
+            />
+          </Form.Item>
+        </div>
+
+        {/* ============================================ */}
+        {/* Row 5: HTF Bias & Dates */}
+        {/* ============================================ */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 16,
+          }}
+        >
+          <Form.Item
+            label="Higher Time Frame Bias"
+            name="longTimeFrameBias"
+            tooltip="Your directional view on the daily/weekly chart"
+          >
             <Select size="large" options={BIAS_OPTIONS} />
           </Form.Item>
 
-          <Form.Item label="Entry Date" name="entryDate" rules={[{ required: true }]}>
+          <Form.Item
+            label="Entry Date"
+            name="entryDate"
+            rules={[{ required: true, message: 'Entry date is required' }]}
+          >
             <DatePicker showTime style={{ width: '100%' }} size="large" />
           </Form.Item>
-          <Form.Item label="Exit Date" name="exitDate" rules={[{ required: true }]}>
+
+          <Form.Item
+            label="Exit Date"
+            name="exitDate"
+            rules={[{ required: true, message: 'Exit date is required' }]}
+          >
             <DatePicker showTime style={{ width: '100%' }} size="large" />
           </Form.Item>
         </div>
 
+        {/* ============================================ */}
+        {/* Notes */}
+        {/* ============================================ */}
         <Form.Item label="Notes" name="notes">
-          <Input.TextArea rows={3} placeholder="Your thoughts, strategy, emotions..." />
+          <Input.TextArea
+            rows={3}
+            placeholder="Your thoughts, strategy, emotions..."
+          />
         </Form.Item>
 
+        {/* ============================================ */}
+        {/* Screenshots (multi-upload + delete tracking) */}
+        {/* ============================================ */}
         <Form.Item
           label="Trade Screenshots"
           tooltip="Existing images are shown. Click X to remove one. Click + to add more."

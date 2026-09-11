@@ -8,6 +8,8 @@ import { Analytics } from './pages/Analytics';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import MainLayout from './layouts/MainLayout';
+import { Calendar } from './pages/Calendar';
+import { Overview } from './pages/Overview';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, loading } = useAuth();
@@ -39,7 +41,9 @@ function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/overview" element={<Overview />} />  
         <Route path="/trades" element={<Trades />} />
+        <Route path="/calendar" element={<Calendar />} />   
         <Route path="/analytics" element={<Analytics />} />
       </Route>
 

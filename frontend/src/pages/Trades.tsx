@@ -8,6 +8,7 @@ import {
   message,
   Select,
   Image,
+  Tooltip,
   Modal,
 } from 'antd';
 import {
@@ -184,6 +185,43 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
             : '—',
         type: 'numericColumn',
       },
+      {
+  headerName: 'Missed R',
+  width: 100,
+  valueGetter: (params) => {
+    const t = params.data;
+    if (!t?.mfe || !t?.stoploss || !t?.entryPrice) return null;
+    const risk = Math.abs(t.entryPrice - t.stoploss);
+    if (risk === 0) return null;
+    if (t.direction === 'BUY') return (t.mfe - t.exitPrice) / risk;
+    return (t.exitPrice - t.mfe) / risk;
+  },
+  cellRenderer: (params: ICellRendererParams) => {
+    const val = params.value;
+    if (val == null) return <Text type="secondary">—</Text>;
+    const isPositive = val > 0;
+    return (
+      <Tooltip
+        title={
+          isPositive
+            ? `You could have made ${val.toFixed(2)}R more`
+            : `You captured well (or price never went higher)`
+        }
+      >
+        <span
+          style={{
+            color: isPositive ? '#faad14' : '#52c41a',
+            fontWeight: 600,
+            fontSize: 12,
+          }}
+        >
+          {isPositive ? '+' : ''}
+          {val.toFixed(2)}R
+        </span>
+      </Tooltip>
+    );
+  },
+},
       {
         field: 'longTimeFrameBias',
         headerName: 'HTF Bias',

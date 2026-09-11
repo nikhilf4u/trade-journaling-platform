@@ -23,6 +23,7 @@ import {
   SafetyOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { AimOutlined } from '@ant-design/icons';
 import {
   LineChart,
   Line,
@@ -433,7 +434,130 @@ export const Analytics: React.FC = () => {
 {/* Discipline Matrix */}
 {/* ============================================ */}
 <BehavioralAnalysis summary={summary} />
+{/* ============================================ */}
+{/* KPI Row 5 — MFE & Capture Analysis */}
+{/* ============================================ */}
+<Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+  <Col xs={24} sm={12} md={6} className="fade-in-up stagger-1">
+    <Card className="card-lift">
+      <AnimatedStatistic
+        title={
+          <Space>
+            Capture Ratio
+            <Tooltip title="% of the potential move you actually captured (avg across winners)">
+              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+            </Tooltip>
+          </Space>
+        }
+        value={Number(summary.avg_capture_pct || 0)}
+        suffix="%"
+        precision={1}
+        prefix={<TrophyOutlined />}
+        valueStyle={{
+          color:
+            Number(summary.avg_capture_pct) >= 70
+              ? '#52c41a'
+              : Number(summary.avg_capture_pct) >= 50
+              ? '#faad14'
+              : '#ff4d4f',
+        }}
+      />
+      <Text type="secondary" style={{ fontSize: 11 }}>
+        {summary.trades_analyzed || 0} winners analyzed
+      </Text>
+    </Card>
+  </Col>
 
+  <Col xs={24} sm={12} md={6} className="fade-in-up stagger-2">
+    <Card className="card-lift">
+      <AnimatedStatistic
+        title={
+          <Space>
+            Avg Missed R
+            <Tooltip title="Average R-multiple you left on the table per winning trade">
+              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+            </Tooltip>
+          </Space>
+        }
+        value={Number(summary.avg_missed_r || 0)}
+        precision={2}
+        suffix="R"
+        prefix={<AimOutlined />}
+        valueStyle={{
+          color:
+            Number(summary.avg_missed_r) <= 0.5
+              ? '#52c41a'
+              : Number(summary.avg_missed_r) <= 1
+              ? '#faad14'
+              : '#ff4d4f',
+        }}
+      />
+      <Text type="secondary" style={{ fontSize: 11 }}>
+        Across {summary.trades_with_missed_r || 0} trades
+      </Text>
+    </Card>
+  </Col>
+
+  <Col xs={24} sm={12} md={6} className="fade-in-up stagger-3">
+    <Card className="card-lift">
+      <AnimatedStatistic
+        title={
+          <Space>
+            Target Hit Rate
+            <Tooltip title="% of trades where MFE reached your target">
+              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+            </Tooltip>
+          </Space>
+        }
+        value={Number(summary.target_hit_rate || 0)}
+        suffix="%"
+        precision={1}
+        valueStyle={{
+          color:
+            Number(summary.target_hit_rate) >= 60
+              ? '#52c41a'
+              : Number(summary.target_hit_rate) >= 40
+              ? '#faad14'
+              : '#ff4d4f',
+        }}
+      />
+      <Text type="secondary" style={{ fontSize: 11 }}>
+        {summary.target_hits || 0} of {summary.trades_with_data || 0} trades
+      </Text>
+    </Card>
+  </Col>
+
+  <Col xs={24} sm={12} md={6} className="fade-in-up stagger-4">
+    <Card className="card-lift">
+      <AnimatedStatistic
+        title={
+          <Space>
+            Target Accuracy
+            <Tooltip title="Avg ratio of MFE to target. >1.5 = targets were too conservative">
+              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+            </Tooltip>
+          </Space>
+        }
+        value={Number(summary.avg_mfe_target_ratio || 0)}
+        precision={2}
+        suffix="x"
+        valueStyle={{
+          color:
+            Number(summary.avg_mfe_target_ratio) > 1.5
+              ? '#faad14'
+              : Number(summary.avg_mfe_target_ratio) >= 0.9
+              ? '#52c41a'
+              : '#ff4d4f',
+        }}
+      />
+      <Text type="secondary" style={{ fontSize: 11 }}>
+        {summary.undertarget_moves > 0
+          ? `${summary.undertarget_moves} trades had big missed moves`
+          : 'Targets well-calibrated'}
+      </Text>
+    </Card>
+  </Col>
+</Row>
 
       {/* ============================================ */}
       {/* Equity Curve */}

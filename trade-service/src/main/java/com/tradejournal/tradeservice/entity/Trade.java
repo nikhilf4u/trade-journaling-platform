@@ -52,6 +52,12 @@ public class Trade extends BaseEntity {
     @Column(precision = 15, scale = 2)
     private BigDecimal target;
 
+    @Column(name = "mfe")
+    private BigDecimal mfe;
+
+    @Column(name = "mae")
+    private BigDecimal mae;
+
     // ⭐ NEW: Long-Time Frame Bias (higher timeframe view)
     @Column(length = 30)
     private String longTimeFrameBias;

@@ -94,4 +94,11 @@ export const analyticsApi = {
     const response = await axios.get(`${ANALYTICS_API}/api/analytics/bias-performance`);
     return unwrap<BiasPerformance[]>(response);
   },
+
+  getCalendar: async (year: number, month: number): Promise<any[]> => {
+  const response = await axios.get(
+    `${ANALYTICS_API}/api/analytics/calendar?year=${year}&month=${month}`
+  );
+  return unwrap<any[]>(response);
+},
 };
