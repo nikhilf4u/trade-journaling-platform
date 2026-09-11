@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { PageContainer } from '@ant-design/pro-components';
 import {
-  Layout,
   Button,
   Typography,
   Space,
@@ -8,15 +8,13 @@ import {
   message,
   Select,
   Image,
-  Popconfirm,
+  Modal,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
-  ArrowLeftOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
 import {
   ColDef,
@@ -24,16 +22,17 @@ import {
   AllCommunityModule,
   ICellRendererParams,
 } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { tradeApi, Trade, TradeScreenshot } from '../services/tradeApi';
-import { TradeFormModal } from '../components/TradeFormModel';
+import { TradeFormModal } from '../components/TradeFormModal';
+import { useTheme } from '../context/ThemeContext';
+import { EmptyState } from '../components/EmptyState';
+import { notifySuccess, notifyError } from '../utils/notify';
+import { TradeDetailDrawer } from '../components/TradeDetailDrawer';
 
 // Register all community modules (required for AG Grid v32+)
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const { Title, Text } = Typography;
-const { Content } = Layout;
+const { Text } = Typography;
 
 export const Trades: React.FC = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -41,11 +40,13 @@ export const Trades: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [marketFilter, setMarketFilter] = useState<string | undefined>(undefined);
-  const navigate = useNavigate();
-
-  // ----------------------------------------------------------------
-  // Load trades from backend
-  // ----------------------------------------------------------------
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const { mode } = useTheme();
+  const hasFilter = !!marketFilter;
+  // ----------------------------------------------------------
+  // Load trades
+  // ----------------------------------------------------------
   const loadTrades = useCallback(async () => {
     setLoading(true);
     try {
@@ -63,24 +64,24 @@ export const Trades: React.FC = () => {
     loadTrades();
   }, [loadTrades]);
 
-  // ----------------------------------------------------------------
+  // ----------------------------------------------------------
   // Delete trade
-  // ----------------------------------------------------------------
+  // ----------------------------------------------------------
   const handleDelete = async (id: number, symbol: string) => {
     try {
       await tradeApi.delete(id);
-      message.success(`Trade "${symbol}" deleted successfully`);
-      loadTrades(); // Refresh the table
+      notifySuccess('Trade Deleted', `"${symbol}" has been removed from your journal.`);
+      loadTrades();
     } catch (err: any) {
-      message.error(err.response?.data?.error || 'Failed to delete trade');
+      notifyError('Failed to Delete Trade', err.response?.data?.error || 'An error occurred while deleting the trade.');
     }
   };
 
-  // ----------------------------------------------------------------
-  // AG Grid column definitions
-  // ----------------------------------------------------------------
-  const columnDefs = useMemo<ColDef<Trade>[]>(
-    (): ColDef<Trade>[] => [
+  // ----------------------------------------------------------
+  // Column definitions
+  // ----------------------------------------------------------
+  const columnDefs: ColDef<Trade>[] = useMemo<ColDef<Trade>[]>(
+    () => [
       {
         field: 'entryDate',
         headerName: 'Date',
@@ -154,14 +155,14 @@ export const Trades: React.FC = () => {
         cellStyle: { color: '#faad14', fontWeight: 500 },
       },
       {
-  field: 'target',
-  headerName: 'Target',
-  width: 100,
-  type: 'numericColumn',
-  valueFormatter: (params) =>
-    params.value != null ? params.value.toFixed(2) : '—',
-  cellStyle: { color: '#52c41a', fontWeight: 500 },
-},
+        field: 'target',
+        headerName: 'Target',
+        width: 100,
+        type: 'numericColumn',
+        valueFormatter: (params) =>
+          params.value != null ? params.value.toFixed(2) : '—',
+        cellStyle: { color: '#52c41a', fontWeight: 500 },
+      },
       {
         field: 'quantity',
         headerName: 'Qty',
@@ -227,7 +228,11 @@ export const Trades: React.FC = () => {
                     src={s.url}
                     width={35}
                     height={35}
-                    style={{ objectFit: 'cover', borderRadius: 4, cursor: 'pointer' }}
+                    style={{
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                    }}
                   />
                 ))}
               </Image.PreviewGroup>
@@ -240,7 +245,6 @@ export const Trades: React.FC = () => {
           );
         },
       },
-      // ⭐ ACTIONS COLUMN (Edit + Delete)
       {
         headerName: 'Actions',
         width: 120,
@@ -252,22 +256,42 @@ export const Trades: React.FC = () => {
             <Button
               icon={<EditOutlined />}
               size="small"
-              type="default"
               onClick={() => {
                 setEditingTrade(params.data);
                 setModalOpen(true);
               }}
             />
-            <Popconfirm
-              title="Delete this trade?"
-              description={`Delete "${params.data.symbol}"? This cannot be undone.`}
-              onConfirm={() => handleDelete(params.data.id, params.data.symbol)}
-              okText="Yes, Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
-              <Button icon={<DeleteOutlined />} size="small" danger />
-            </Popconfirm>
+            
+<Button
+  icon={<DeleteOutlined />}
+  size="small"
+  danger
+  onClick={() => {
+    Modal.confirm({
+      title: (
+        <Space>
+          <DeleteOutlined style={{ color: '#ff4d4f' }} />
+          <span>Delete Trade?</span>
+        </Space>
+      ),
+      content: (
+        <div>
+          <p style={{ marginBottom: 8 }}>
+            Are you sure you want to delete <strong>{params.data.symbol}</strong>?
+          </p>
+          <p style={{ color: '#ff4d4f', fontSize: 12, margin: 0 }}>
+            ⚠️ This will permanently remove the trade and its screenshots. This action cannot be undone.
+          </p>
+        </div>
+      ),
+      okText: 'Delete Trade',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      onOk: () => handleDelete(params.data.id, params.data.symbol),
+      centered: true,
+    });
+  }}
+/>
           </Space>
         ),
       },
@@ -275,94 +299,137 @@ export const Trades: React.FC = () => {
     []
   );
 
-  // ----------------------------------------------------------------
+  // ----------------------------------------------------------
   // Render
-  // ----------------------------------------------------------------
+  // ----------------------------------------------------------
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f0f2f5', padding: 20 }}>
-      <Content>
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 20,
-          }}
-        >
-          <Space>
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate('/dashboard')}
-            >
-              Back
-            </Button>
-            <Title level={3} style={{ margin: 0 }}>
-              📊 My Trades
-            </Title>
-          </Space>
-
-          <Space>
-            <Select
-              placeholder="Filter by market"
-              allowClear
-              style={{ width: 180 }}
-              value={marketFilter}
-              onChange={setMarketFilter}
-              options={[
-                { label: 'NSE', value: 'NSE' },
-                { label: 'BSE', value: 'BSE' },
-                { label: 'NASDAQ', value: 'NASDAQ' },
-                { label: 'NYSE', value: 'NYSE' },
-                { label: 'CRYPTO', value: 'CRYPTO' },
-                { label: 'FX', value: 'FX' },
-              ]}
-            />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setEditingTrade(null);
-                setModalOpen(true);
-              }}
-            >
-              Log New Trade
-            </Button>
-          </Space>
-        </div>
-
-        {/* AG Grid Table */}
-        <Card bodyStyle={{ padding: 0 }}>
-          <div
-            className="ag-theme-alpine"
-            style={{ height: 600, width: '100%' }}
+    <PageContainer
+      header={{
+        title: (
+      <Space>
+        <span className="live-dot" />
+        <span>📋 My Trades</span>
+      </Space>
+    ),
+        subTitle: `${trades.length} trade${trades.length !== 1 ? 's' : ''} logged`,
+        extra: [
+          <Select
+            key="filter"
+            placeholder="Filter by market"
+            allowClear
+            style={{ width: 180 }}
+            value={marketFilter}
+            onChange={setMarketFilter}
+            options={[
+              { label: 'NSE', value: 'NSE' },
+              { label: 'BSE', value: 'BSE' },
+              { label: 'NASDAQ', value: 'NASDAQ' },
+              { label: 'NYSE', value: 'NYSE' },
+              { label: 'CRYPTO', value: 'CRYPTO' },
+              { label: 'FX', value: 'FX' },
+            ]}
+          />,
+          <Button
+            key="add"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditingTrade(null);
+              setModalOpen(true);
+            }}
           >
-            <AgGridReact<Trade>
-              rowData={trades}
-              columnDefs={columnDefs}
-              loading={loading}
-              pagination={true}
-              paginationPageSize={20}
-              paginationPageSizeSelector={[10, 20, 50, 100]}
-              defaultColDef={{
-                resizable: true,
-                sortable: true,
-                filter: true,
-              }}
-              animateRows={true}
-              suppressCellFocus={true}
-            />
-          </div>
-        </Card>
-
-        {/* Create/Edit Trade Modal */}
-        <TradeFormModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          onSuccess={loadTrades}
-          editingTrade={editingTrade}
-        />
-      </Content>
-    </Layout>
+            Log New Trade
+          </Button>,
+        ],
+      }}
+    >
+     <Card bodyStyle={trades.length === 0 ? { padding: 0 } : { padding: 0 }}>
+{trades.length === 0 && !loading ? (
+  hasFilter ? (
+    <EmptyState
+      icon="🔍"
+      title={`No ${marketFilter} Trades`}
+      description={`You don't have any trades in the ${marketFilter} market. Try clearing the filter or logging a new trade.`}
+      actionLabel="Clear Filter"
+      onAction={() => setMarketFilter(undefined)}
+    />
+  ) : (
+    <EmptyState
+      icon="📝"
+      title="No Trades Yet"
+      description="Start logging your trades to see analytics, patterns, and performance insights."
+      actionLabel="+ Log Your First Trade"
+      onAction={() => {
+        setEditingTrade(null);
+        setModalOpen(true);
+      }}
+    />
+  )
+) : (
+    <div
+      className={mode === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}
+      style={{ height: 600, width: '100%' }}
+    >
+      <AgGridReact<Trade>
+  rowData={trades}
+  columnDefs={columnDefs}  
+  loading={loading}
+  pagination={true}
+  paginationPageSize={20}
+  paginationPageSizeSelector={[10, 20, 50, 100]}
+  defaultColDef={{
+    resizable: true,
+    sortable: true,
+    filter: true,
+  }}
+  animateRows={true}
+  suppressCellFocus={true}
+  onRowClicked={(event) => {
+    // Don't open drawer if the click was on an action button or image
+    if (event.event?.target instanceof HTMLElement) {
+      const target = event.event.target;
+      // Skip if user clicked on button, image, or popconfirm
+      if (
+        target.closest('button') ||
+        target.closest('.ant-image') ||
+        target.closest('.ant-popover')
+      ) {
+        return;
+      }
+    }
+    setSelectedTrade(event.data);
+    setDetailDrawerOpen(true);
+  }}
+  rowStyle={{ cursor: 'pointer' }}
+/>
+    </div>
+  )}
+</Card>
+      <TradeFormModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={loadTrades}
+        editingTrade={editingTrade}
+      />
+      <TradeDetailDrawer
+  open={detailDrawerOpen}
+  trade={selectedTrade}
+  onClose={() => {
+    setDetailDrawerOpen(false);
+    setSelectedTrade(null);
+  }}
+  onEdit={(trade) => {
+    setDetailDrawerOpen(false);
+    setEditingTrade(trade);
+    setModalOpen(true);
+  }}
+  onDelete={(trade) => {
+    setDetailDrawerOpen(false);
+    if (trade.id) {
+      handleDelete(trade.id, trade.symbol);
+    }
+  }}
+/>
+    </PageContainer>
   );
 };

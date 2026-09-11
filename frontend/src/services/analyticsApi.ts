@@ -53,6 +53,15 @@ export interface DashboardData {
   monthlyPnl: MonthlyPnl[];
   marketPerformance: MarketPerformance[];
   biasPerformance: BiasPerformance[];
+  rMultipleDistribution?: { bucket: string; count: number }[]; 
+  dayOfWeekPerformance?: {           
+    day_of_week: string;
+    dow_num: number;
+    trade_count: number;
+    total_pnl: number;
+    avg_pnl: number;
+    win_rate: number;
+  }[];
 }
 
 export const analyticsApi = {

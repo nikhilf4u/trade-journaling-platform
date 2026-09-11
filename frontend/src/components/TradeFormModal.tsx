@@ -16,6 +16,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import dayjs from 'dayjs';
 import { tradeApi, Trade } from '../services/tradeApi';
+import { notifySuccess } from '../utils/notify';
 
 interface Props {
   open: boolean;
@@ -193,8 +194,12 @@ export const TradeFormModal: React.FC<Props> = ({
           console.log(`📤 Uploaded ${newFiles.length} new screenshot(s)`);
         }
       }
-
-      message.success(isEditing ? 'Trade updated!' : 'Trade created!');
+notifySuccess(
+  isEditing ? 'Trade Updated' : 'Trade Created',
+  isEditing 
+    ? 'Your changes have been saved.' 
+    : 'Your trade has been added to the journal.'
+);
       onSuccess();
       onClose();
     } catch (err: any) {
