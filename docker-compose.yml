@@ -1,0 +1,111 @@
+version: '3.8'
+services:
+  # ---------- DATABASES (One per Microservice) ----------
+  user-db:
+    image: postgres:15-alpine
+    container_name: user-db
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trader123
+    ports:
+      - "5432:5432"
+    volumes:
+      - user_data:/var/lib/postgresql/data
+
+  trade-db:
+    image: postgres:15-alpine
+    container_name: trade-db
+    environment:
+      POSTGRES_DB: tradedb
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trader123
+    ports:
+      - "5433:5432"
+    volumes:
+      - trade_data:/var/lib/postgresql/data
+
+  analytics-db:
+    image: postgres:15-alpine
+    container_name: analytics-db
+    environment:
+      POSTGRES_DB: analyticsdb
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trader123
+    ports:
+      - "5434:5432"
+    volumes:
+      - analytics_data:/var/lib/postgresql/data
+
+  integration-db:
+    image: postgres:15-alpine
+    container_name: integration-db
+    environment:
+      POSTGRES_DB: integrationdb
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trader123
+    ports:
+      - "5435:5432"
+    volumes:
+      - integration_data:/var/lib/postgresql/data
+
+  # ---------- CACHE ----------
+  redis:
+    image: redis:7-alpine
+    container_name: trade-redis
+    ports:
+      - "6379:6379"
+
+  # ---------- KAFKA INFRASTRUCTURE ----------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: apache/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      # 1. KRaft Node Configuration
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+
+      # 2. Listener Configuration (Crucial)
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # 3. Logs and Topics
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # 4. Cluster ID (Must be set for KRaft)
+      KAFKA_KRAFT_CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+  # ---------- KAFKA UI (Visual Debugging) ----------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+
+volumes:
+  user_data:
+  trade_data:
+  analytics_data:
+  integration_data:
