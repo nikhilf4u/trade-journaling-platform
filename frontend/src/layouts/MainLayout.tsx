@@ -142,7 +142,7 @@ const MainLayout: React.FC = () => {
       <CommandPalette
         open={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
-        onOpenTradeDrawer={(trade) => {
+        onOpenTradeDrawer={(_trade) => {
           // Navigate to trades — the drawer will open once we wire deeper
           navigate('/trades');
         }}

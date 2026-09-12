@@ -44,6 +44,8 @@
         <!-- Maven Plugins -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+
+        <flyway.version>10.20.1</flyway.version>
     </properties>
 
     <!-- ======== CHILD MODULES ======== -->

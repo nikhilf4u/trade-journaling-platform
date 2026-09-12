@@ -39,7 +39,7 @@ import { TradeFormModal } from '../components/TradeFormModal';
 import { useTheme } from '../context/ThemeContext';
 import { notifySuccess, notifyError } from '../utils/notify';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 // ============================================================
 // Helper calculations

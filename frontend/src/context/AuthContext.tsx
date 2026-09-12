@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface User {
   id: number;
@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string): Promise<string> => {
-    const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+    const response = await axios.post(`${API_BASE_URL}/auth/login`, {
       email,
       password,
     });
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const register = async (data: any): Promise<void> => {
-    const response = await axios.post(`${API_BASE_URL}/api/auth/register`, data);
+    const response = await axios.post(`${API_BASE_URL}/auth/register`, data);
     // Unwrap if needed (for future use)
     return response.data.data || response.data;
   };

@@ -7,7 +7,6 @@ import {
   Typography,
   Button,
   Space,
-  Spin,
   message,
   Table,
   Tag,
@@ -444,9 +443,9 @@ export const Analytics: React.FC = () => {
         title={
           <Space>
             Capture Ratio
-            <Tooltip title="% of the potential move you actually captured (avg across winners)">
+            <AntTooltip title="% of the potential move you actually captured (avg across winners)">
               <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </Tooltip>
+            </AntTooltip>
           </Space>
         }
         value={Number(summary.avg_capture_pct || 0)}
@@ -474,9 +473,9 @@ export const Analytics: React.FC = () => {
         title={
           <Space>
             Avg Missed R
-            <Tooltip title="Average R-multiple you left on the table per winning trade">
+            <AntTooltip title="Average R-multiple you left on the table per winning trade">
               <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </Tooltip>
+            </AntTooltip>
           </Space>
         }
         value={Number(summary.avg_missed_r || 0)}
@@ -504,9 +503,9 @@ export const Analytics: React.FC = () => {
         title={
           <Space>
             Target Hit Rate
-            <Tooltip title="% of trades where MFE reached your target">
+            <AntTooltip title="% of trades where MFE reached your target">
               <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </Tooltip>
+            </AntTooltip>
           </Space>
         }
         value={Number(summary.target_hit_rate || 0)}
@@ -533,9 +532,9 @@ export const Analytics: React.FC = () => {
         title={
           <Space>
             Target Accuracy
-            <Tooltip title="Avg ratio of MFE to target. >1.5 = targets were too conservative">
+            <AntTooltip title="Avg ratio of MFE to target. >1.5 = targets were too conservative">
               <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </Tooltip>
+            </AntTooltip>
           </Space>
         }
         value={Number(summary.avg_mfe_target_ratio || 0)}
@@ -581,7 +580,7 @@ export const Analytics: React.FC = () => {
                     Number(value).toFixed(2),
                     'Cumulative P&L',
                   ]}
-                  labelFormatter={(val) => new Date(val).toLocaleString()}
+                  labelFormatter={(val) => new Date(val as string).toLocaleString()}
                 />
                 <Legend />
                 <Line
@@ -772,9 +771,9 @@ export const Analytics: React.FC = () => {
     title={
       <Space>
         🎯 R-Multiple Distribution
-        <Tooltip title="How much you make/lose per unit of risk. A +2R trade means you made 2× your risk.">
+        <AntTooltip title="How much you make/lose per unit of risk. A +2R trade means you made 2× your risk.">
           <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-        </Tooltip>
+        </AntTooltip>
       </Space>
     }
     className="card-lift"
@@ -888,9 +887,9 @@ export const Analytics: React.FC = () => {
     title="📅 Day-of-Week Performance"
     className="card-lift"
     extra={
-      <Tooltip title="P&L by day. Spot which days you should avoid trading.">
+      <AntTooltip title="P&L by day. Spot which days you should avoid trading.">
         <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-      </Tooltip>
+      </AntTooltip>
     }
   >
     {!data.dayOfWeekPerformance || data.dayOfWeekPerformance.length === 0 ? (
@@ -902,10 +901,10 @@ export const Analytics: React.FC = () => {
           <XAxis dataKey="day_of_week" />
           <YAxis />
           <Tooltip
-            formatter={(value: any, name: string) => {
-              if (name === 'Total P&L') return [Number(value).toFixed(2), 'P&L'];
-              return [value, name];
-            }}
+              formatter={((value: any, name?: string) => {
+                if (name === 'Total P&L') return [Number(value).toFixed(2), 'P&L'];
+                return [value, name || ''];
+              }) as any}
           />
           <Legend />
           <Bar

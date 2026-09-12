@@ -110,13 +110,13 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
         ),
         width: 100,
       },
-      {
-        field: 'symbol',
-        headerName: 'Symbol',
-        filter: true,
-        width: 110,
-        cellStyle: { fontWeight: 'bold' },
-      },
+        {
+            field: 'symbol',
+            headerName: 'Symbol',
+            filter: true,
+            width: 110,
+            cellStyle: () => ({ fontWeight: 'bold' }),
+        },
       {
         field: 'direction',
         headerName: 'Direction',
@@ -435,7 +435,9 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
         return;
       }
     }
-    setSelectedTrade(event.data);
+      if (event.data) {
+          setSelectedTrade(event.data);
+      }
     setDetailDrawerOpen(true);
   }}
   rowStyle={{ cursor: 'pointer' }}

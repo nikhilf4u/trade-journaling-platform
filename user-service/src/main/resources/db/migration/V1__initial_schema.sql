@@ -12,5 +12,5 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT NOW()
     );
 
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_reset_token ON users(reset_token);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_reset_token ON users(reset_token);

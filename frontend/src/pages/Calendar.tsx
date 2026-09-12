@@ -8,9 +8,7 @@ import {
   Space,
   Typography,
   Tooltip,
-  Tag,
   Statistic,
-  Empty,
   Spin,
   message,
 } from 'antd';
@@ -26,7 +24,7 @@ import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { analyticsApi } from '../services/analyticsApi';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 interface DayData {
   trade_date: string;

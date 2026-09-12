@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Skeleton, Space } from 'antd';
+import { Card, Row, Col, Skeleton } from 'antd';
 
 export const DashboardSkeleton: React.FC = () => (
   <>

@@ -31,7 +31,7 @@ import {
 import type { Trade } from '../services/tradeApi';
 import dayjs from 'dayjs';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 interface Props {
   open: boolean;

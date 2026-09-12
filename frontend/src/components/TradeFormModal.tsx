@@ -175,9 +175,8 @@ export const TradeFormModal: React.FC<Props> = ({
       // 2. Upload new screenshots
       if (savedTrade.id) {
         const newFiles: File[] = fileList
-          .map((f) => f.originFileObj)
-          .filter((f): f is File => !!f);
-
+            .map((f) => f.originFileObj as unknown as File)
+            .filter((f): f is File => !!f);
         if (newFiles.length > 0) {
           await tradeApi.uploadScreenshots(savedTrade.id, newFiles);
         }

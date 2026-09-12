@@ -9,38 +9,39 @@ interface Props {
   prefix?: React.ReactNode;
   suffix?: string;
   valueStyle?: React.CSSProperties;
-  formatter?: (value: number) => React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const AnimatedStatistic: React.FC<Props> = ({
-  title,
-  value,
-  precision = 0,
-  prefix,
-  suffix,
-  valueStyle,
-}) => {
-  // Format value for animation display
-  const formatValue = (val: number) => {
-    return (
+                                                     title,
+                                                     value,
+                                                     precision = 0,
+                                                     prefix,
+                                                     suffix,
+                                                     valueStyle,
+                                                     children,
+                                                   }) => {
+  const formatValue = (val: number) => (
       <CountUp
-        end={val}
-        decimals={precision}
-        duration={1.2}
-        separator=","
-        preserveValue
+          end={val}
+          decimals={precision}
+          duration={1.2}
+          separator=","
+          preserveValue
       />
-    );
-  };
+  );
 
   return (
-    <Statistic
-      title={title}
-      value={value}
-      formatter={(val) => formatValue(Number(val))}
-      prefix={prefix}
-      suffix={suffix}
-      valueStyle={valueStyle}
-    />
+      <>
+        <Statistic
+            title={title}
+            value={value}
+            formatter={(val) => formatValue(Number(val))}
+            prefix={prefix}
+            suffix={suffix}
+            valueStyle={valueStyle}
+        />
+        {children}
+      </>
   );
 };

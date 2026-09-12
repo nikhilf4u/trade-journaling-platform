@@ -1,0 +1,52 @@
+# ============================================================
+# USER SERVICE — Multi-stage Docker build
+# ============================================================
+
+FROM maven:3.9-eclipse-temurin-17 AS builder
+
+WORKDIR /build
+
+# Copy ALL module POMs so Maven can parse the parent POM
+COPY pom.xml .
+COPY common-library/pom.xml common-library/
+COPY user-service/pom.xml user-service/
+COPY trade-service/pom.xml trade-service/
+COPY analytics-service/pom.xml analytics-service/
+COPY integration-service/pom.xml integration-service/
+COPY api-gateway/pom.xml api-gateway/
+
+# Download dependencies for user-service only
+RUN mvn -B dependency:go-offline -pl user-service -am || true
+
+# Copy source code
+COPY common-library/src common-library/src
+COPY user-service/src user-service/src
+
+# Build the JAR
+RUN mvn -B clean package -pl user-service -am -DskipTests
+
+# ------------------------------------------------------------
+FROM amazoncorretto:17-alpine
+
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+RUN addgroup -S spring && \
+    adduser -S spring -G spring && \
+    chown -R spring:spring /app
+
+USER spring
+
+COPY --from=builder --chown=spring:spring /build/user-service/target/*.jar app.jar
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", "app.jar"]

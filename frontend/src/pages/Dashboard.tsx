@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
-import { Card, Row, Col, Button, Space, message } from 'antd';
+import { Card, Row, Col, Button, Space } from 'antd';
 import {
   UserOutlined,
   DollarOutlined,
