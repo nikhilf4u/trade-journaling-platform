@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const TRADE_API = import.meta.env.VITE_API_URL || '/api';
+const TRADE_API = import.meta.env.VITE_API_URL || '';
 
 export interface TradeScreenshot {
   id?: number;

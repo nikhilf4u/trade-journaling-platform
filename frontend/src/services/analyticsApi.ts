@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const ANALYTICS_API = import.meta.env.VITE_API_URL || '/api';
+const ANALYTICS_API = import.meta.env.VITE_API_URL || '';
 
 const unwrap = <T>(response: any): T => response.data?.data ?? response.data;
 
