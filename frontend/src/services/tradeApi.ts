@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const TRADE_API = import.meta.env.VITE_API_URL || '';
+import apiClient from './apiClient';
 
 export interface TradeScreenshot {
   id?: number;
@@ -22,46 +20,42 @@ export interface Trade {
   stoploss?: number;
   target?: number;
   mfe?: number;
-  mae?: number; 
-  longTimeFrameBias?: string;
+  mae?: number;
   pnl?: number;
   entryDate: string;
   exitDate: string;
   notes?: string;
   screenshots?: TradeScreenshot[];
+  longTimeFrameBias?: string;
   createdAt?: string;
-  
 }
 
 const unwrap = <T>(response: any): T => response.data?.data ?? response.data;
 
 export const tradeApi = {
   getAll: async (market?: string): Promise<Trade[]> => {
-    const url = market
-      ? `${TRADE_API}/api/trades?market=${market}`
-      : `${TRADE_API}/api/trades`;
-    const response = await axios.get(url);
+    const params = market ? { market } : {};
+    const response = await apiClient.get('/trades', { params });
     return unwrap<Trade[]>(response);
   },
 
   getById: async (id: number): Promise<Trade> => {
-    const response = await axios.get(`${TRADE_API}/api/trades/${id}`);
+    const response = await apiClient.get(`/trades/${id}`);
     return unwrap<Trade>(response);
   },
 
   create: async (trade: Trade): Promise<Trade> => {
-    const response = await axios.post(`${TRADE_API}/api/trades`, trade);
+    const response = await apiClient.post('/trades', trade);
     return unwrap<Trade>(response);
   },
 
   update: async (id: number, trade: Trade): Promise<Trade> => {
-    const response = await axios.put(`${TRADE_API}/api/trades/${id}`, trade);
+    const response = await apiClient.put(`/trades/${id}`, trade);
     return unwrap<Trade>(response);
   },
 
-  // ⭐ NEW: Delete a trade
   delete: async (id: number): Promise<void> => {
-    await axios.delete(`${TRADE_API}/api/trades/${id}`);
+    await apiClient.delete(`/trades/${id}`);
   },
 
   uploadScreenshots: async (
@@ -70,8 +64,8 @@ export const tradeApi = {
   ): Promise<{ message: string; uploaded: any[] }> => {
     const formData = new FormData();
     files.forEach((file) => formData.append('files', file));
-    const response = await axios.post(
-      `${TRADE_API}/api/trades/${tradeId}/screenshots`,
+    const response = await apiClient.post(
+      `/trades/${tradeId}/screenshots`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
@@ -79,6 +73,6 @@ export const tradeApi = {
   },
 
   deleteScreenshot: async (tradeId: number, screenshotId: number): Promise<void> => {
-    await axios.delete(`${TRADE_API}/api/trades/${tradeId}/screenshots/${screenshotId}`);
+    await apiClient.delete(`/trades/${tradeId}/screenshots/${screenshotId}`);
   },
 };

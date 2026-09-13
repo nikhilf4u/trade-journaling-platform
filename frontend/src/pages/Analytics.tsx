@@ -42,7 +42,43 @@ import { AnalyticsSkeleton } from '../components/AnalyticsSkeleton';
 import { InfoCircleOutlined, TrophyOutlined, FireOutlined } from '@ant-design/icons';
 import { Tooltip as AntTooltip } from 'antd';
 import { BehavioralAnalysis } from '../components/BehavioralAnalysis';
+import {
+  AccuracyTooltip,
+  RiskRewardTooltip,
+  TotalPnLTooltip,
+  ExpectancyTooltip,
+  ProfitFactorTooltip,
+  MaxDrawdownTooltip,
+  StopLossAdherenceTooltip,
+  AvgPnLTooltip,
+  SharpeTooltip,
+  SortinoTooltip,
+  CalmarTooltip,
+  RMultipleTooltip,
+  TargetHitRateTooltip,
+  CaptureRatioTooltip,
+  MissedRTooltip,
+  TargetAccuracyTooltip,
+  AvgMaeTooltip,
+  OptimalStopTooltip,
+  MetricTooltip,
+} from '../components/metricTooltips';
+
 const { Title, Text } = Typography;
+
+// Wrapper for consistent tooltip placement
+const InfoTip: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AntTooltip
+    title={children}
+    placement="top"
+    overlayStyle={{ maxWidth: 420 }}
+    color="#1f1f1f"
+  >
+    <InfoCircleOutlined
+      style={{ color: '#8c8c8c', cursor: 'help', marginLeft: 4 }}
+    />
+  </AntTooltip>
+);
 
 export const Analytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -247,7 +283,14 @@ export const Analytics: React.FC = () => {
         <Col xs={24} sm={12} md={6} className="fade-in-up stagger-1">
           <Card className="card-lift">
             <AnimatedStatistic
-              title="Accuracy"
+              title={
+                <Space>
+                  Accuracy
+                  <InfoTip>
+                    <AccuracyTooltip />
+                  </InfoTip>
+                </Space>
+              }
               value={accuracy}
               suffix="%"
               precision={1}
@@ -265,7 +308,14 @@ export const Analytics: React.FC = () => {
         <Col xs={24} sm={12} md={6} className="fade-in-up stagger-2">
           <Card className="card-lift">
             <AnimatedStatistic
-              title="Risk / Reward"
+              title={
+                <Space>
+                  Risk / Reward
+                  <InfoTip>
+                    <RiskRewardTooltip />
+                  </InfoTip>
+                </Space>
+              }
               value={rr}
               precision={2}
               suffix=":1"
@@ -284,7 +334,14 @@ export const Analytics: React.FC = () => {
         <Col xs={24} sm={12} md={6} className="fade-in-up stagger-3">
           <Card className="card-lift">
             <AnimatedStatistic
-              title="Total P&L"
+              title={
+                <Space>
+                  Total P&L
+                  <InfoTip>
+                    <TotalPnLTooltip />
+                  </InfoTip>
+                </Space>
+              }
               value={Number(summary.total_pnl || 0)}
               precision={2}
               prefix={<RiseOutlined />}
@@ -301,7 +358,14 @@ export const Analytics: React.FC = () => {
         <Col xs={24} sm={12} md={6} className="fade-in-up stagger-4">
           <Card className="card-lift">
             <AnimatedStatistic
-              title="Expectancy"
+              title={
+                <Space>
+                  Expectancy
+                  <InfoTip>
+                    <ExpectancyTooltip />
+                  </InfoTip>
+                </Space>
+              }
               value={expectancy}
               precision={2}
               prefix={<ThunderboltOutlined />}
@@ -323,7 +387,14 @@ export const Analytics: React.FC = () => {
         <Col xs={24} sm={12} md={6} className="fade-in-up stagger-1">
           <Card className="card-lift">
             <AnimatedStatistic
-              title="Profit Factor"
+              title={
+                <Space>
+                  Profit Factor
+                  <InfoTip>
+                    <ProfitFactorTooltip />
+                  </InfoTip>
+                </Space>
+              }
               value={Number(summary.profit_factor || 0)}
               precision={2}
               prefix={<FallOutlined />}
@@ -338,7 +409,14 @@ export const Analytics: React.FC = () => {
         <Col xs={24} sm={12} md={6} className="fade-in-up stagger-2">
           <Card className="card-lift">
             <AnimatedStatistic
-              title="Max Drawdown"
+              title={
+                <Space>
+                  Max Drawdown
+                  <InfoTip>
+                    <MaxDrawdownTooltip />
+                  </InfoTip>
+                </Space>
+              }
               value={Math.abs(Number(summary.max_drawdown || 0))}
               precision={2}
               prefix={<WarningOutlined />}
@@ -350,7 +428,14 @@ export const Analytics: React.FC = () => {
         <Col xs={24} sm={12} md={6} className="fade-in-up stagger-3">
           <Card className="card-lift">
             <AnimatedStatistic
-              title="Stop Loss Adherence"
+              title={
+                <Space>
+                  Stop Loss Adherence
+                  <InfoTip>
+                    <StopLossAdherenceTooltip />
+                  </InfoTip>
+                </Space>
+              }
               value={Number(summary.adherence_percentage || 0)}
               suffix="%"
               precision={0}
@@ -372,13 +457,118 @@ export const Analytics: React.FC = () => {
         <Col xs={24} sm={12} md={6} className="fade-in-up stagger-4">
           <Card className="card-lift">
             <AnimatedStatistic
-              title="Average P&L"
+              title={
+                <Space>
+                  Average P&L
+                  <InfoTip>
+                    <AvgPnLTooltip />
+                  </InfoTip>
+                </Space>
+              }
               value={Number(summary.avg_pnl || 0)}
               precision={2}
               valueStyle={{
                 color: Number(summary.avg_pnl) >= 0 ? '#52c41a' : '#ff4d4f',
               }}
             />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* ============================================ */}
+      {/* KPI Row 3 — Risk-Adjusted Ratios */}
+      {/* ============================================ */}
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24} sm={12} md={8} className="fade-in-up stagger-1">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title={
+                <Space>
+                  Sharpe Ratio
+                  <InfoTip>
+                    <SharpeTooltip />
+                  </InfoTip>
+                </Space>
+              }
+              value={Number(summary.sharpe_ratio || 0)}
+              precision={2}
+              prefix={<TrophyOutlined />}
+              valueStyle={{
+                color:
+                  Number(summary.sharpe_ratio) >= 1.5
+                    ? '#52c41a'
+                    : Number(summary.sharpe_ratio) >= 1
+                    ? '#faad14'
+                    : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {Number(summary.sharpe_ratio) >= 2
+                ? 'Excellent'
+                : Number(summary.sharpe_ratio) >= 1
+                ? 'Good'
+                : Number(summary.sharpe_ratio) >= 0
+                ? 'Marginal'
+                : 'Negative'}
+            </Text>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} className="fade-in-up stagger-2">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title={
+                <Space>
+                  Sortino Ratio
+                  <InfoTip>
+                    <SortinoTooltip />
+                  </InfoTip>
+                </Space>
+              }
+              value={Number(summary.sortino_ratio || 0)}
+              precision={2}
+              prefix={<RiseOutlined />}
+              valueStyle={{
+                color:
+                  Number(summary.sortino_ratio) >= 2
+                    ? '#52c41a'
+                    : Number(summary.sortino_ratio) >= 1
+                    ? '#faad14'
+                    : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              Downside-risk adjusted
+            </Text>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} className="fade-in-up stagger-3">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title={
+                <Space>
+                  Calmar Ratio
+                  <InfoTip>
+                    <CalmarTooltip />
+                  </InfoTip>
+                </Space>
+              }
+              value={Number(summary.calmar_ratio || 0)}
+              precision={2}
+              prefix={<SafetyOutlined />}
+              valueStyle={{
+                color:
+                  Number(summary.calmar_ratio) >= 0.5
+                    ? '#52c41a'
+                    : Number(summary.calmar_ratio) >= 0.2
+                    ? '#faad14'
+                    : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              Return / Drawdown
+            </Text>
           </Card>
         </Col>
       </Row>
@@ -429,140 +619,431 @@ export const Analytics: React.FC = () => {
         </Card>
       </div>
 
-{/* ============================================ */}
-{/* Discipline Matrix */}
-{/* ============================================ */}
-<BehavioralAnalysis summary={summary} />
-{/* ============================================ */}
-{/* KPI Row 5 — MFE & Capture Analysis */}
-{/* ============================================ */}
-<Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-  <Col xs={24} sm={12} md={6} className="fade-in-up stagger-1">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title={
-          <Space>
-            Capture Ratio
-            <AntTooltip title="% of the potential move you actually captured (avg across winners)">
-              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </AntTooltip>
-          </Space>
-        }
-        value={Number(summary.avg_capture_pct || 0)}
-        suffix="%"
-        precision={1}
-        prefix={<TrophyOutlined />}
-        valueStyle={{
-          color:
-            Number(summary.avg_capture_pct) >= 70
-              ? '#52c41a'
-              : Number(summary.avg_capture_pct) >= 50
-              ? '#faad14'
-              : '#ff4d4f',
-        }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        {summary.trades_analyzed || 0} winners analyzed
-      </Text>
-    </Card>
-  </Col>
+      {/* ============================================ */}
+      {/* Optimal Stop Suggestion Card */}
+      {/* ============================================ */}
+      {Number(summary.p95_mae_winners) > 0 && (
+        <Card
+          style={{
+            marginTop: 20,
+            background: '#f0f5ff',
+            borderColor: '#adc6ff',
+          }}
+          className="card-lift fade-in-up"
+        >
+          <Row gutter={[16, 16]} align="middle">
+            <Col flex="auto">
+              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                <Space>
+                  <AimOutlined style={{ color: '#1890ff', fontSize: 20 }} />
+                  <Text strong style={{ fontSize: 16 }}>
+                    🎯 Optimal Stop Suggestion
+                  </Text>
+                  <InfoTip>
+                    <OptimalStopTooltip />
+                  </InfoTip>
+                </Space>
+                <Text>
+                  Based on <strong>{summary.sample_size || 0}</strong> winning trades:
+                </Text>
+                <Space wrap>
+                  <Tag color="blue">
+                    Avg MAE:{' '}
+                    <strong>{Number(summary.avg_mae_winners || 0).toFixed(2)}R</strong>
+                  </Tag>
+                  <Tag color="orange">
+                    P95 MAE:{' '}
+                    <strong>{Number(summary.p95_mae_winners || 0).toFixed(2)}R</strong>
+                  </Tag>
+                  <Tag color="red">
+                    Max MAE:{' '}
+                    <strong>{Number(summary.max_mae_winners || 0).toFixed(2)}R</strong>
+                  </Tag>
+                </Space>
+                <Text type="secondary">
+                  95% of your winning trades experienced max adverse excursion of{' '}
+                  <strong>{Number(summary.p95_mae_winners || 0).toFixed(2)}R</strong>.
+                  Consider tightening your stops from <strong>1.00R</strong> to{' '}
+                  <strong>
+                    {Math.max(0.85, Number(summary.p95_mae_winners || 0) + 0.1).toFixed(2)}R
+                  </strong>{' '}
+                  to cut losses without missing winners.
+                </Text>
+              </Space>
+            </Col>
+          </Row>
+        </Card>
+      )}
 
-  <Col xs={24} sm={12} md={6} className="fade-in-up stagger-2">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title={
-          <Space>
-            Avg Missed R
-            <AntTooltip title="Average R-multiple you left on the table per winning trade">
-              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </AntTooltip>
-          </Space>
-        }
-        value={Number(summary.avg_missed_r || 0)}
-        precision={2}
-        suffix="R"
-        prefix={<AimOutlined />}
-        valueStyle={{
-          color:
-            Number(summary.avg_missed_r) <= 0.5
-              ? '#52c41a'
-              : Number(summary.avg_missed_r) <= 1
-              ? '#faad14'
-              : '#ff4d4f',
-        }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        Across {summary.trades_with_missed_r || 0} trades
-      </Text>
-    </Card>
-  </Col>
+      {/* ============================================ */}
+      {/* Discipline Matrix */}
+      {/* ============================================ */}
+      <BehavioralAnalysis summary={summary} />
 
-  <Col xs={24} sm={12} md={6} className="fade-in-up stagger-3">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title={
-          <Space>
-            Target Hit Rate
-            <AntTooltip title="% of trades where MFE reached your target">
-              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </AntTooltip>
-          </Space>
-        }
-        value={Number(summary.target_hit_rate || 0)}
-        suffix="%"
-        precision={1}
-        valueStyle={{
-          color:
-            Number(summary.target_hit_rate) >= 60
-              ? '#52c41a'
-              : Number(summary.target_hit_rate) >= 40
-              ? '#faad14'
-              : '#ff4d4f',
-        }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        {summary.target_hits || 0} of {summary.trades_with_data || 0} trades
-      </Text>
-    </Card>
-  </Col>
+      {/* ============================================ */}
+      {/* KPI Row 5 — MFE & Capture Analysis */}
+      {/* ============================================ */}
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24} sm={12} md={6} className="fade-in-up stagger-1">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title={
+                <Space>
+                  Capture Ratio
+                  <InfoTip>
+                    <CaptureRatioTooltip />
+                  </InfoTip>
+                </Space>
+              }
+              value={Number(summary.avg_capture_pct || 0)}
+              suffix="%"
+              precision={1}
+              prefix={<TrophyOutlined />}
+              valueStyle={{
+                color:
+                  Number(summary.avg_capture_pct) >= 70
+                    ? '#52c41a'
+                    : Number(summary.avg_capture_pct) >= 50
+                    ? '#faad14'
+                    : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {summary.trades_analyzed || 0} winners analyzed
+            </Text>
+          </Card>
+        </Col>
 
-  <Col xs={24} sm={12} md={6} className="fade-in-up stagger-4">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title={
-          <Space>
-            Target Accuracy
-            <AntTooltip title="Avg ratio of MFE to target. >1.5 = targets were too conservative">
-              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </AntTooltip>
-          </Space>
-        }
-        value={Number(summary.avg_mfe_target_ratio || 0)}
-        precision={2}
-        suffix="x"
-        valueStyle={{
-          color:
-            Number(summary.avg_mfe_target_ratio) > 1.5
-              ? '#faad14'
-              : Number(summary.avg_mfe_target_ratio) >= 0.9
-              ? '#52c41a'
-              : '#ff4d4f',
-        }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        {summary.undertarget_moves > 0
-          ? `${summary.undertarget_moves} trades had big missed moves`
-          : 'Targets well-calibrated'}
-      </Text>
-    </Card>
-  </Col>
-</Row>
+        <Col xs={24} sm={12} md={6} className="fade-in-up stagger-2">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title={
+                <Space>
+                  Avg Missed R
+                  <InfoTip>
+                    <MissedRTooltip />
+                  </InfoTip>
+                </Space>
+              }
+              value={Number(summary.avg_missed_r || 0)}
+              precision={2}
+              suffix="R"
+              prefix={<AimOutlined />}
+              valueStyle={{
+                color:
+                  Number(summary.avg_missed_r) <= 0.5
+                    ? '#52c41a'
+                    : Number(summary.avg_missed_r) <= 1
+                    ? '#faad14'
+                    : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              Across {summary.trades_with_missed_r || 0} trades
+            </Text>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={6} className="fade-in-up stagger-3">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title={
+                <Space>
+                  Target Hit Rate
+                  <InfoTip>
+                    <TargetHitRateTooltip />
+                  </InfoTip>
+                </Space>
+              }
+              value={Number(summary.target_hit_rate || 0)}
+              suffix="%"
+              precision={1}
+              valueStyle={{
+                color:
+                  Number(summary.target_hit_rate) >= 60
+                    ? '#52c41a'
+                    : Number(summary.target_hit_rate) >= 40
+                    ? '#faad14'
+                    : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {summary.target_hits || 0} of {summary.trades_with_data || 0} trades
+            </Text>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={6} className="fade-in-up stagger-4">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title={
+                <Space>
+                  Avg MAE (Winners)
+                  <InfoTip>
+                    <AvgMaeTooltip />
+                  </InfoTip>
+                </Space>
+              }
+              value={Number(summary.avg_mae_winners || 0)}
+              precision={2}
+              suffix="R"
+              prefix={<SafetyOutlined />}
+              valueStyle={{
+                color:
+                  Number(summary.avg_mae_winners) <= 0.5
+                    ? '#52c41a'
+                    : Number(summary.avg_mae_winners) <= 0.8
+                    ? '#faad14'
+                    : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {summary.winning_trades_with_mae || 0} winners analyzed
+            </Text>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* ============================================ */}
+      {/* KPI Row 6 — Target Accuracy */}
+      {/* ============================================ */}
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24} sm={12} md={8} className="fade-in-up stagger-1">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title={
+                <Space>
+                  Target Accuracy
+                  <InfoTip>
+                    <TargetAccuracyTooltip />
+                  </InfoTip>
+                </Space>
+              }
+              value={Number(summary.avg_mfe_target_ratio || 0)}
+              precision={2}
+              suffix="x"
+              valueStyle={{
+                color:
+                  Number(summary.avg_mfe_target_ratio) > 1.5
+                    ? '#faad14'
+                    : Number(summary.avg_mfe_target_ratio) >= 0.9
+                    ? '#52c41a'
+                    : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {summary.undertarget_moves > 0
+                ? `${summary.undertarget_moves} trades had big missed moves`
+                : 'Targets well-calibrated'}
+            </Text>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* ============================================ */}
+      {/* R-Multiple Distribution */}
+      {/* ============================================ */}
+      <div className="fade-in-up stagger-6" style={{ marginTop: 20 }}>
+        <Card
+          title={
+            <Space>
+              🎯 R-Multiple Distribution
+              <InfoTip>
+                <RMultipleTooltip />
+              </InfoTip>
+            </Space>
+          }
+          className="card-lift"
+          extra={
+            summary.avg_r_multiple != null && (
+              <Space>
+                <Tag
+                  color={Number(summary.avg_r_multiple) >= 0 ? 'green' : 'red'}
+                >
+                  Avg: {Number(summary.avg_r_multiple).toFixed(2)}R
+                </Tag>
+                {summary.best_r != null && (
+                  <Tag color="blue">Best: {Number(summary.best_r).toFixed(2)}R</Tag>
+                )}
+                {summary.worst_r != null && (
+                  <Tag color="red">Worst: {Number(summary.worst_r).toFixed(2)}R</Tag>
+                )}
+              </Space>
+            )
+          }
+        >
+          {!data.rMultipleDistribution || data.rMultipleDistribution.length === 0 ? (
+            <Empty description="Set stop-losses on your trades to see R-multiple analysis" />
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={data.rMultipleDistribution}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="bucket" />
+                <YAxis />
+                <Tooltip formatter={(value: any) => [`${value} trades`, 'Count']} />
+                <Bar
+                  dataKey="count"
+                  fill="#1890ff"
+                  name="Trades"
+                  radius={[4, 4, 0, 0]}
+                  animationDuration={900}
+                >
+                  {data.rMultipleDistribution.map((entry: any, index: number) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        entry.bucket.startsWith('-') || entry.bucket.startsWith('<')
+                          ? '#ff4d4f'
+                          : '#52c41a'
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+      </div>
+
+      {/* ============================================ */}
+      {/* KPI Row 4 — Streak Analysis */}
+      {/* ============================================ */}
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24} sm={12} md={8} className="fade-in-up stagger-1">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title="Longest Win Streak"
+              value={Number(summary.longest_win_streak || 0)}
+              prefix={<FireOutlined style={{ color: '#52c41a' }} />}
+              valueStyle={{ color: '#52c41a' }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              Consecutive winning trades
+            </Text>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} className="fade-in-up stagger-2">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title="Longest Loss Streak"
+              value={Number(summary.longest_loss_streak || 0)}
+              prefix={<FallOutlined style={{ color: '#ff4d4f' }} />}
+              valueStyle={{ color: '#ff4d4f' }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              Consecutive losing trades
+            </Text>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8} className="fade-in-up stagger-3">
+          <Card className="card-lift">
+            <AnimatedStatistic
+              title="Current Streak"
+              value={Number(summary.current_streak || 0)}
+              suffix={summary.current_streak_type || ''}
+              prefix={
+                summary.current_streak_type === 'WIN' ? (
+                  <RiseOutlined style={{ color: '#52c41a' }} />
+                ) : (
+                  <FallOutlined style={{ color: '#ff4d4f' }} />
+                )
+              }
+              valueStyle={{
+                color:
+                  summary.current_streak_type === 'WIN' ? '#52c41a' : '#ff4d4f',
+              }}
+            />
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              Your active streak
+            </Text>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* ============================================ */}
+      {/* Day-of-Week Performance */}
+      {/* ============================================ */}
+      <div className="fade-in-up stagger-6" style={{ marginTop: 20 }}>
+        <Card
+          title={
+            <Space>
+              📅 Day-of-Week Performance
+              <InfoTip>
+                <MetricTooltip
+                  title="📅 Day-of-Week Performance"
+                  definition="Profit and loss grouped by the day of the week you entered the trade. Reveals hidden patterns — many traders consistently lose money on specific days."
+                  ranges={[
+                    { label: 'All green', color: 'green' },
+                    { label: 'Mixed', color: 'orange' },
+                    { label: 'One big red', color: 'red' },
+                  ]}
+                  tip="If Mondays are consistently red, consider skipping them. Data-driven scheduling is a real edge."
+                />
+              </InfoTip>
+            </Space>
+          }
+          className="card-lift"
+        >
+          {!data.dayOfWeekPerformance || data.dayOfWeekPerformance.length === 0 ? (
+            <Empty description="No trades yet" />
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={data.dayOfWeekPerformance}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day_of_week" />
+                <YAxis />
+                <Tooltip
+                  formatter={
+                    ((value: any, name?: string) => {
+                      if (name === 'Total P&L')
+                        return [Number(value).toFixed(2), 'P&L'];
+                      return [value, name || ''];
+                    }) as any
+                  }
+                />
+                <Legend />
+                <Bar
+                  dataKey="total_pnl"
+                  name="Total P&L"
+                  radius={[4, 4, 0, 0]}
+                  animationDuration={900}
+                >
+                  {(data.dayOfWeekPerformance || []).map(
+                    (entry: any, index: number) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={Number(entry.total_pnl) >= 0 ? '#52c41a' : '#ff4d4f'}
+                      />
+                    )
+                  )}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+      </div>
 
       {/* ============================================ */}
       {/* Equity Curve */}
       {/* ============================================ */}
       <div className="fade-in-up stagger-6" style={{ marginTop: 20 }}>
-        <Card title="📈 Equity Curve" className="card-lift">
+        <Card
+          title={
+            <Space>
+              📈 Equity Curve
+              <InfoTip>
+                <MetricTooltip
+                  title="📈 Equity Curve"
+                  definition="Cumulative P&L over time. Shows how your account has grown (or shrunk) with each trade."
+                  tip="Look at the shape, not the number. A smooth upward slope is better than a jagged one, even if the final number is lower — it means you can safely increase size."
+                />
+              </InfoTip>
+            </Space>
+          }
+          className="card-lift"
+        >
           {equityCurve.length === 0 ? (
             <Empty description="No trades yet" />
           ) : (
@@ -603,7 +1084,21 @@ export const Analytics: React.FC = () => {
       {/* Monthly P&L */}
       {/* ============================================ */}
       <div className="fade-in-up stagger-6" style={{ marginTop: 20 }}>
-        <Card title="📊 Monthly P&L" className="card-lift">
+        <Card
+          title={
+            <Space>
+              📊 Monthly P&L
+              <InfoTip>
+                <MetricTooltip
+                  title="📊 Monthly P&L"
+                  definition="Profit and loss grouped by month. Reveals consistency and seasonality."
+                  tip="Look for repeated patterns. If you consistently lose money in a specific month, consider reducing size or sitting out."
+                />
+              </InfoTip>
+            </Space>
+          }
+          className="card-lift"
+        >
           {monthlyPnl.length === 0 ? (
             <Empty description="No monthly data yet" />
           ) : (
@@ -633,7 +1128,21 @@ export const Analytics: React.FC = () => {
       {/* ============================================ */}
       <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
         <Col xs={24} lg={12} className="fade-in-up stagger-6">
-          <Card title="🌍 Performance by Market" className="card-lift">
+          <Card
+            title={
+              <Space>
+                🌍 Performance by Market
+                <InfoTip>
+                  <MetricTooltip
+                    title="🌍 Performance by Market"
+                    definition="Compares your win rate and P&L across different exchanges (NSE, NASDAQ, etc.)."
+                    tip="Most traders have an edge in specific markets. If you're consistently losing in one, stop trading it and double down where you win."
+                  />
+                </InfoTip>
+              </Space>
+            }
+            className="card-lift"
+          >
             {marketPerformance.length === 0 ? (
               <Empty description="No data" />
             ) : (
@@ -649,7 +1158,21 @@ export const Analytics: React.FC = () => {
         </Col>
 
         <Col xs={24} lg={12} className="fade-in-up stagger-6">
-          <Card title="🎯 Performance by HTF Bias" className="card-lift">
+          <Card
+            title={
+              <Space>
+                🎯 Performance by HTF Bias
+                <InfoTip>
+                  <MetricTooltip
+                    title="🎯 Performance by HTF Bias"
+                    definition="Shows how you perform based on your higher-timeframe directional view (Bullish, Bearish, Neutral)."
+                    tip="If you're consistently profitable only when your bias is Bullish, the data says: only trade long. Follow your statistically proven edge."
+                  />
+                </InfoTip>
+              </Space>
+            }
+            className="card-lift"
+          >
             {biasPerformance.length === 0 ? (
               <Empty description="No data" />
             ) : (
@@ -664,267 +1187,6 @@ export const Analytics: React.FC = () => {
           </Card>
         </Col>
       </Row>
-
-      {/* ============================================ */}
-{/* KPI Row 3 — Risk-Adjusted Ratios */}
-{/* ============================================ */}
-<Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-  <Col xs={24} sm={12} md={8} className="fade-in-up stagger-1">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title={
-          <Space>
-            Sharpe Ratio
-            <AntTooltip title="Risk-adjusted return. > 1 is good, > 2 is excellent.">
-              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </AntTooltip>
-          </Space>
-        }
-        value={Number(summary.sharpe_ratio || 0)}
-        precision={2}
-        prefix={<TrophyOutlined />}
-        valueStyle={{
-          color:
-            Number(summary.sharpe_ratio) >= 1.5
-              ? '#52c41a'
-              : Number(summary.sharpe_ratio) >= 1
-              ? '#faad14'
-              : '#ff4d4f',
-        }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        {Number(summary.sharpe_ratio) >= 2
-          ? 'Excellent'
-          : Number(summary.sharpe_ratio) >= 1
-          ? 'Good'
-          : Number(summary.sharpe_ratio) >= 0
-          ? 'Marginal'
-          : 'Negative'}
-      </Text>
-    </Card>
-  </Col>
-
-  <Col xs={24} sm={12} md={8} className="fade-in-up stagger-2">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title={
-          <Space>
-            Sortino Ratio
-            <AntTooltip title="Like Sharpe but only penalizes downside volatility.">
-              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </AntTooltip>
-          </Space>
-        }
-        value={Number(summary.sortino_ratio || 0)}
-        precision={2}
-        prefix={<RiseOutlined />}
-        valueStyle={{
-          color:
-            Number(summary.sortino_ratio) >= 2
-              ? '#52c41a'
-              : Number(summary.sortino_ratio) >= 1
-              ? '#faad14'
-              : '#ff4d4f',
-        }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        Downside-risk adjusted
-      </Text>
-    </Card>
-  </Col>
-
-  <Col xs={24} sm={12} md={8} className="fade-in-up stagger-3">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title={
-          <Space>
-            Calmar Ratio
-            <AntTooltip title="Total return divided by max drawdown.">
-              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-            </AntTooltip>
-          </Space>
-        }
-        value={Number(summary.calmar_ratio || 0)}
-        precision={2}
-        prefix={<SafetyOutlined />}
-        valueStyle={{
-          color:
-            Number(summary.calmar_ratio) >= 0.5
-              ? '#52c41a'
-              : Number(summary.calmar_ratio) >= 0.2
-              ? '#faad14'
-              : '#ff4d4f',
-        }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        Return / Drawdown
-      </Text>
-    </Card>
-  </Col>
-</Row>
-
-{/* ============================================ */}
-{/* R-Multiple Distribution */}
-{/* ============================================ */}
-<div className="fade-in-up stagger-6" style={{ marginTop: 20 }}>
-  <Card
-    title={
-      <Space>
-        🎯 R-Multiple Distribution
-        <AntTooltip title="How much you make/lose per unit of risk. A +2R trade means you made 2× your risk.">
-          <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-        </AntTooltip>
-      </Space>
-    }
-    className="card-lift"
-    extra={
-      summary.avg_r_multiple != null && (
-        <Space>
-          <Tag color={Number(summary.avg_r_multiple) >= 0 ? 'green' : 'red'}>
-            Avg: {Number(summary.avg_r_multiple).toFixed(2)}R
-          </Tag>
-          {summary.best_r != null && (
-            <Tag color="blue">Best: {Number(summary.best_r).toFixed(2)}R</Tag>
-          )}
-          {summary.worst_r != null && (
-            <Tag color="red">Worst: {Number(summary.worst_r).toFixed(2)}R</Tag>
-          )}
-        </Space>
-      )
-    }
-  >
-    {!data.rMultipleDistribution || data.rMultipleDistribution.length === 0 ? (
-      <Empty description="Set stop-losses on your trades to see R-multiple analysis" />
-    ) : (
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data.rMultipleDistribution}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="bucket" />
-          <YAxis />
-          <Tooltip
-            formatter={(value: any) => [`${value} trades`, 'Count']}
-          />
-          <Bar
-            dataKey="count"
-            fill="#1890ff"
-            name="Trades"
-            radius={[4, 4, 0, 0]}
-            animationDuration={900}
-          >
-            {data.rMultipleDistribution.map((entry: any, index: number) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.bucket.startsWith('-') || entry.bucket.startsWith('<') ? '#ff4d4f' : '#52c41a'}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    )}
-  </Card>
-</div>
-{/* ============================================ */}
-{/* KPI Row 4 — Streak Analysis */}
-{/* ============================================ */}
-<Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-  <Col xs={24} sm={12} md={8} className="fade-in-up stagger-1">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title="Longest Win Streak"
-        value={Number(summary.longest_win_streak || 0)}
-        prefix={<FireOutlined style={{ color: '#52c41a' }} />}
-        valueStyle={{ color: '#52c41a' }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        Consecutive winning trades
-      </Text>
-    </Card>
-  </Col>
-
-  <Col xs={24} sm={12} md={8} className="fade-in-up stagger-2">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title="Longest Loss Streak"
-        value={Number(summary.longest_loss_streak || 0)}
-        prefix={<FallOutlined style={{ color: '#ff4d4f' }} />}
-        valueStyle={{ color: '#ff4d4f' }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        Consecutive losing trades
-      </Text>
-    </Card>
-  </Col>
-
-  <Col xs={24} sm={12} md={8} className="fade-in-up stagger-3">
-    <Card className="card-lift">
-      <AnimatedStatistic
-        title="Current Streak"
-        value={Number(summary.current_streak || 0)}
-        suffix={summary.current_streak_type || ''}
-        prefix={
-          summary.current_streak_type === 'WIN' ? (
-            <RiseOutlined style={{ color: '#52c41a' }} />
-          ) : (
-            <FallOutlined style={{ color: '#ff4d4f' }} />
-          )
-        }
-        valueStyle={{
-          color: summary.current_streak_type === 'WIN' ? '#52c41a' : '#ff4d4f',
-        }}
-      />
-      <Text type="secondary" style={{ fontSize: 11 }}>
-        Your active streak
-      </Text>
-    </Card>
-  </Col>
-</Row>
-
-{/* ============================================ */}
-{/* Day-of-Week Performance */}
-{/* ============================================ */}
-<div className="fade-in-up stagger-6" style={{ marginTop: 20 }}>
-  <Card
-    title="📅 Day-of-Week Performance"
-    className="card-lift"
-    extra={
-      <AntTooltip title="P&L by day. Spot which days you should avoid trading.">
-        <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
-      </AntTooltip>
-    }
-  >
-    {!data.dayOfWeekPerformance || data.dayOfWeekPerformance.length === 0 ? (
-      <Empty description="No trades yet" />
-    ) : (
-      <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={data.dayOfWeekPerformance}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="day_of_week" />
-          <YAxis />
-          <Tooltip
-              formatter={((value: any, name?: string) => {
-                if (name === 'Total P&L') return [Number(value).toFixed(2), 'P&L'];
-                return [value, name || ''];
-              }) as any}
-          />
-          <Legend />
-          <Bar
-            dataKey="total_pnl"
-            name="Total P&L"
-            radius={[4, 4, 0, 0]}
-            animationDuration={900}
-          >
-            {(data.dayOfWeekPerformance || []).map((entry: any, index: number) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={Number(entry.total_pnl) >= 0 ? '#52c41a' : '#ff4d4f'}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    )}
-  </Card>
-</div>
     </PageContainer>
   );
 };

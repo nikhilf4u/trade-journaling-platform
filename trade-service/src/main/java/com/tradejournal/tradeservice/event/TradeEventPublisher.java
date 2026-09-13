@@ -5,6 +5,7 @@ import com.tradejournal.tradeservice.entity.Trade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,9 +16,9 @@ public class TradeEventPublisher {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private static final String TOPIC = "trade-events";
 
+    @Async
     public void publishTradeLoggedEvent(Trade trade) {
         try {
-            // Map Trade -> TradeLoggedEvent (from common-library)
             TradeLoggedEvent event = new TradeLoggedEvent(
                     trade.getId(),
                     trade.getUserId(),
@@ -31,11 +32,20 @@ public class TradeEventPublisher {
                     trade.getEntryDate()
             );
 
-            kafkaTemplate.send(TOPIC, String.valueOf(trade.getUserId()), event);
-            log.info("📤 Published TradeLoggedEvent for trade ID: {}", trade.getId());
-
+            kafkaTemplate.send(TOPIC, String.valueOf(trade.getUserId()), event)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.warn("⚠️ Kafka publish failed for trade {}: {}",
+                                    trade.getId(), ex.getMessage());
+                        } else {
+                            log.info("📤 Published TradeLoggedEvent for trade {} (partition: {}, offset: {})",
+                                    trade.getId(),
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        }
+                    });
         } catch (Exception e) {
-            log.error("❌ Failed to publish TradeLoggedEvent: {}", e.getMessage());
+            log.warn("⚠️ Kafka publish exception (trade still saved): {}", e.getMessage());
         }
     }
 }

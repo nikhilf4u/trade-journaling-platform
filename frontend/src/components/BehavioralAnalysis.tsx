@@ -21,12 +21,36 @@ import {
   SafetyCertificateOutlined,
   AimOutlined,
 } from '@ant-design/icons';
+import {
+  MetricTooltip,
+  DisciplineScoreTooltip,
+  StopLossAdherenceTooltip,
+  ExitDisciplineTooltip,
+  RiskConsistencyTooltip,
+  OvertradingTooltip,
+  RevengeTradingTooltip,
+  CaptureRatioTooltip,
+} from './metricTooltips';
 
 const { Text, Title } = Typography;
 
 interface Props {
   summary: any;
 }
+
+// Wrapper for consistent tooltip styling
+const InfoTip: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Tooltip
+    title={children}
+    placement="top"
+    overlayStyle={{ maxWidth: 420 }}
+    color="#1f1f1f"
+  >
+    <InfoCircleOutlined
+      style={{ color: '#bfbfbf', fontSize: 11, cursor: 'help' }}
+    />
+  </Tooltip>
+);
 
 export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
   const score = Number(summary.discipline_score || 0);
@@ -54,35 +78,35 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
       label: 'Stop-Loss Adherence',
       value: Number(summary.stoploss_adherence_score || 0),
       weight: '30%',
-      tooltip: '% of trades where you set a stop-loss',
+      tooltip: <StopLossAdherenceTooltip />,
     },
     {
       key: 'exit',
       label: 'Exit Discipline',
       value: Number(summary.exit_discipline_score || 0),
       weight: '30%',
-      tooltip: '% of trades exited at target or stop-loss',
+      tooltip: <ExitDisciplineTooltip />,
     },
     {
       key: 'risk',
       label: 'Risk Consistency',
       value: Number(summary.risk_consistency_score || 0),
       weight: '20%',
-      tooltip: 'How consistent is your position sizing?',
+      tooltip: <RiskConsistencyTooltip />,
     },
     {
       key: 'overtrading',
       label: 'No Overtrading',
       value: Number(summary.overtrading_score || 0),
       weight: '10%',
-      tooltip: '% of days where you did NOT overtrade',
+      tooltip: <OvertradingTooltip />,
     },
     {
       key: 'revenge',
       label: 'No Revenge Trading',
       value: Number(summary.revenge_trading_score || 0),
       weight: '10%',
-      tooltip: '% of trades that were NOT emotional reactions',
+      tooltip: <RevengeTradingTooltip />,
     },
   ];
 
@@ -120,14 +144,21 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
         title={
           <Space>
             🧠 Discipline Matrix
-            <Tooltip title="A composite of 5 behavioral metrics that determine trading success">
-              <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+            <Tooltip
+              title={<DisciplineScoreTooltip />}
+              placement="top"
+              overlayStyle={{ maxWidth: 420 }}
+              color="#1f1f1f"
+            >
+              <InfoCircleOutlined style={{ color: '#8c8c8c', cursor: 'help' }} />
             </Tooltip>
           </Space>
         }
         className="card-lift"
       >
+        {/* ============================================ */}
         {/* Top Hero Section: Composite Score */}
+        {/* ============================================ */}
         <Row gutter={[24, 16]} align="middle">
           <Col xs={24} md={8}>
             <div style={{ textAlign: 'center' }}>
@@ -148,7 +179,13 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
                     >
                       {p}
                     </div>
-                    <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: '#8c8c8c',
+                        marginTop: 4,
+                      }}
+                    >
                       Discipline Score
                     </div>
                   </div>
@@ -179,7 +216,11 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
             </Title>
             {scores.map((s) => {
               const color =
-                s.value >= 80 ? '#52c41a' : s.value >= 60 ? '#faad14' : '#ff4d4f';
+                s.value >= 80
+                  ? '#52c41a'
+                  : s.value >= 60
+                  ? '#faad14'
+                  : '#ff4d4f';
               return (
                 <div key={s.key} style={{ marginBottom: 12 }}>
                   <div
@@ -187,19 +228,13 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
                       display: 'flex',
                       justifyContent: 'space-between',
                       marginBottom: 4,
+                      alignItems: 'center',
                     }}
                   >
                     <Space>
                       <Text style={{ fontSize: 13 }}>{s.label}</Text>
-                      <Tooltip title={s.tooltip}>
-                        <InfoCircleOutlined
-                          style={{ color: '#bfbfbf', fontSize: 11 }}
-                        />
-                      </Tooltip>
-                      <Tag
-                        style={{ fontSize: 10, margin: 0 }}
-                        color="default"
-                      >
+                      <InfoTip>{s.tooltip}</InfoTip>
+                      <Tag style={{ fontSize: 10, margin: 0 }} color="default">
                         {s.weight}
                       </Tag>
                     </Space>
@@ -220,13 +255,22 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
           </Col>
         </Row>
 
+        {/* ============================================ */}
         {/* Red Flags */}
+        {/* ============================================ */}
         {redFlags.length > 0 && (
           <>
             <Divider style={{ marginTop: 24, marginBottom: 16 }}>
               <Space>
                 <WarningOutlined style={{ color: '#faad14' }} />
                 <span>Behavioral Red Flags ({redFlags.length})</span>
+                <InfoTip>
+                  <MetricTooltip
+                    title="🚩 Behavioral Red Flags"
+                    definition="Patterns detected in your trade history that suggest emotional or undisciplined trading. These are statistically correlated with account blow-ups."
+                    tip="Each flag is actionable. Address them one at a time — usually by adding a rule to your trading plan (e.g., 'no new trades within 30 min of a loss')."
+                  />
+                </InfoTip>
               </Space>
             </Divider>
             {redFlags.map((flag, i) => (
@@ -257,7 +301,9 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
           </>
         )}
 
+        {/* ============================================ */}
         {/* Detail Row */}
+        {/* ============================================ */}
         <Divider style={{ marginTop: 24, marginBottom: 16 }} />
 
         <Row gutter={[16, 16]}>
@@ -268,6 +314,13 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
                   <Space>
                     <AimOutlined />
                     Hit Target
+                    <InfoTip>
+                      <MetricTooltip
+                        title="🎯 Hit Target"
+                        definition="Number of trades where you exited at your profit target (within 5% tolerance)."
+                        tip="High count = disciplined exits at plan. Low count = exiting early or never reaching target."
+                      />
+                    </InfoTip>
                   </Space>
                 }
                 value={Number(summary.hit_target || 0)}
@@ -287,6 +340,13 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
                   <Space>
                     <SafetyCertificateOutlined />
                     Hit Stop-Loss
+                    <InfoTip>
+                      <MetricTooltip
+                        title="🛑 Hit Stop-Loss"
+                        definition="Number of trades where you exited at your stop-loss (within 5% tolerance)."
+                        tip="This is GOOD — it means you honored your risk limit. The only bad stop-loss is the one you didn't set or didn't respect."
+                      />
+                    </InfoTip>
                   </Space>
                 }
                 value={Number(summary.hit_stoploss || 0)}
@@ -306,6 +366,13 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
                   <Space>
                     <ClockCircleOutlined />
                     Avg Trades/Day
+                    <InfoTip>
+                      <MetricTooltip
+                        title="⏱️ Avg Trades per Day"
+                        definition="Your average number of trades on days you traded."
+                        tip="Compare this with Max Trades/Day. If the max is > 2× your average, you have overtrading days — usually emotional."
+                      />
+                    </InfoTip>
                   </Space>
                 }
                 value={Number(summary.avg_trades_per_day || 0)}
@@ -325,6 +392,9 @@ export const BehavioralAnalysis: React.FC<Props> = ({ summary }) => {
                   <Space>
                     <FireOutlined />
                     Capture Ratio
+                    <InfoTip>
+                      <CaptureRatioTooltip />
+                    </InfoTip>
                   </Space>
                 }
                 value={Number(summary.avg_capture_pct || 0)}

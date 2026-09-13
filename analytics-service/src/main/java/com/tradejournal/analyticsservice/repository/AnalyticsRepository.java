@@ -712,4 +712,66 @@ public interface AnalyticsRepository extends JpaRepository<Trade, Long> {
             @Param("userId") Long userId,
             @Param("tradeId") Long tradeId
     );
+
+    // ================================================================
+// 🎯 MAE ANALYSIS — Heat endured on winners vs losers
+// ================================================================
+    @Query(value = """
+    WITH mae_calc AS (
+        SELECT 
+            id,
+            pnl,
+            CASE 
+                WHEN mae IS NULL OR entry_price = stoploss THEN NULL
+                WHEN direction = 'BUY' THEN 
+                    ABS(entry_price - mae) / NULLIF(ABS(entry_price - stoploss), 0)
+                WHEN direction = 'SELL' THEN 
+                    ABS(mae - entry_price) / NULLIF(ABS(stoploss - entry_price), 0)
+                ELSE NULL
+            END AS mae_in_r
+        FROM trades
+        WHERE user_id = :userId
+            AND stoploss IS NOT NULL
+            AND mae IS NOT NULL
+    )
+    SELECT 
+        COUNT(*) FILTER (WHERE pnl > 0) AS winning_trades_with_mae,
+        ROUND(AVG(mae_in_r) FILTER (WHERE pnl > 0)::NUMERIC, 3) AS avg_mae_winners,
+        ROUND(MAX(mae_in_r) FILTER (WHERE pnl > 0)::NUMERIC, 3) AS max_mae_winners,
+        ROUND(AVG(mae_in_r) FILTER (WHERE pnl < 0)::NUMERIC, 3) AS avg_mae_losers
+    FROM mae_calc
+    """, nativeQuery = true)
+    Map<String, Object> getMaeStats(@Param("userId") Long userId);
+
+    // ================================================================
+// 🎯 OPTIMAL STOP SUGGESTION
+// ================================================================
+    @Query(value = """
+    WITH mae_calc AS (
+        SELECT 
+            pnl,
+            CASE 
+                WHEN mae IS NULL OR entry_price = stoploss THEN NULL
+                WHEN direction = 'BUY' THEN 
+                    ABS(entry_price - mae) / NULLIF(ABS(entry_price - stoploss), 0)
+                WHEN direction = 'SELL' THEN 
+                    ABS(mae - entry_price) / NULLIF(ABS(stoploss - entry_price), 0)
+                ELSE NULL
+            END AS mae_in_r
+        FROM trades
+        WHERE user_id = :userId
+            AND stoploss IS NOT NULL
+            AND mae IS NOT NULL
+            AND pnl > 0
+    )
+    SELECT 
+        ROUND((PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY mae_in_r))::NUMERIC, 3) 
+            AS p95_mae_winners,
+        ROUND((PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY mae_in_r))::NUMERIC, 3) 
+            AS p90_mae_winners,
+        COUNT(*) AS sample_size
+    FROM mae_calc
+    WHERE mae_in_r IS NOT NULL
+    """, nativeQuery = true)
+    Map<String, Object> getOptimalStopSuggestion(@Param("userId") Long userId);
 }

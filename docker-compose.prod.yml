@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ============================================================
   # DATABASES
@@ -37,18 +35,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  analytics-db:
-    image: postgres:15-alpine
-    container_name: analytics-db
-    environment:
-      POSTGRES_DB: analyticsdb
-      POSTGRES_USER: trader
-      POSTGRES_PASSWORD: trader123
-    volumes:
-      - analytics_data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
 
   # ============================================================
   # REDIS
@@ -139,8 +125,8 @@ services:
     image: nikhilf4u/trade-journal-analytics-service:latest
     container_name: analytics-service
     depends_on:
-      analytics-db:
-        condition: service_started
+      trade-db:
+        condition: service_healthy
       redis:
         condition: service_started
       kafka:
@@ -148,16 +134,15 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       PORT: 8080
-      DATABASE_URL: jdbc:postgresql://analytics-db:5432/analyticsdb
+      DATABASE_URL: jdbc:postgresql://trade-db:5432/tradedb
       DATABASE_USERNAME: trader
       DATABASE_PASSWORD: trader123
-      PRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       JWT_SECRET: 6E9C5F7B3A8D1E2F4C7A9B3D5E8F2C4A6B7D9E1F3C5A7B9D1E3F5A7C9B1D3E5F
     ports:
       - "8083:8080"
-
   # ============================================================
   # API GATEWAY
   # ============================================================
@@ -202,5 +187,4 @@ services:
 volumes:
   user_data:
   trade_data:
-  analytics_data:
   uploads_data:
