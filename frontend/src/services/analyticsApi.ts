@@ -74,6 +74,17 @@ export interface SummaryStats {
   risk_consistency_score: number;
   overtrading_score: number;
   revenge_trading_score: number;
+  taken_count: number;
+  taken_pnl: number;
+  taken_wins: number;
+  taken_avg_pnl: number;
+  missed_count: number;
+  missed_pnl: number;
+  missed_wins: number;
+  missed_avg_pnl: number;
+  missed_rate: number;
+  missed_win_rate: number;
+  taken_win_rate: number;
 }
 
 export interface EquityPoint {
@@ -117,6 +128,20 @@ export interface DashboardData {
     avg_pnl: number;
     win_rate: number;
   }[];
+  missedReasonBreakdown?: {
+  reason_type: string;
+  count: number;
+  total_pnl: number;
+  wins: number;
+  win_rate: number;
+}[];
+
+missedConfidenceBreakdown?: {
+  confidence_level: number;
+  count: number;
+  total_pnl: number;
+  win_rate: number;
+}[];
 }
 
 const unwrap = <T>(response: any): T => response.data?.data ?? response.data;

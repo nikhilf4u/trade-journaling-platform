@@ -64,4 +64,13 @@ public class Trade {
 
     @Column(length = 500)
     private String notes;
+
+    @Column(name = "is_missed")
+    private Boolean isMissed;
+
+    @Column(name = "missed_reason_type")
+    private String missedReasonType;
+
+    @Column(name = "confidence_level")
+    private Integer confidenceLevel;
 }

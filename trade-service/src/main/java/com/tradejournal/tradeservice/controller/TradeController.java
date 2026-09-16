@@ -46,15 +46,27 @@ public class TradeController {
     @GetMapping
     public ResponseEntity<?> getTrades(
             @RequestHeader("Authorization") String authHeader,
-            @RequestParam(required = false) String market) {
+            @RequestParam(required = false) String market,
+            @RequestParam(required = false) String type) {  // ⭐ NEW: "taken" | "missed" | null
 
         Long userId = getUserIdFromHeader(authHeader);
         List<Trade> trades;
-        if (market != null && !market.isEmpty()) {
-            trades = tradeService.getTradesForUserAndMarket(userId, market);
+
+        if ("missed".equalsIgnoreCase(type)) {
+            trades = (market != null && !market.isEmpty())
+                    ? tradeService.getMissedTradesByMarket(userId, market)
+                    : tradeService.getMissedTrades(userId);
+        } else if ("taken".equalsIgnoreCase(type)) {
+            trades = (market != null && !market.isEmpty())
+                    ? tradeService.getTakenTradesByMarket(userId, market)
+                    : tradeService.getTakenTrades(userId);
         } else {
-            trades = tradeService.getTradesForUser(userId);
+            // Default: all trades
+            trades = (market != null && !market.isEmpty())
+                    ? tradeService.getTradesForUserAndMarket(userId, market)
+                    : tradeService.getTradesForUser(userId);
         }
+
         return ResponseEntity.ok(ApiResponse.success(trades));
     }
 

@@ -172,4 +172,24 @@ public class TradeService {
             log.error("❌ Failed to delete physical file: {}", url, e);
         }
     }
+
+    // ============================================================
+// TAKEN vs MISSED TRADES
+// ============================================================
+
+    public List<Trade> getTakenTrades(Long userId) {
+        return tradeRepository.findByUserIdAndIsMissedOrderByEntryDateDesc(userId, false);
+    }
+
+    public List<Trade> getMissedTrades(Long userId) {
+        return tradeRepository.findByUserIdAndIsMissedOrderByEntryDateDesc(userId, true);
+    }
+
+    public List<Trade> getTakenTradesByMarket(Long userId, String market) {
+        return tradeRepository.findByUserIdAndMarketAndIsMissedOrderByEntryDateDesc(userId, market, false);
+    }
+
+    public List<Trade> getMissedTradesByMarket(Long userId, String market) {
+        return tradeRepository.findByUserIdAndMarketAndIsMissedOrderByEntryDateDesc(userId, market, true);
+    }
 }

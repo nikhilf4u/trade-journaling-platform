@@ -8,6 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/analytics")
 @RequiredArgsConstructor
@@ -145,5 +148,15 @@ public class AnalyticsController {
         Long userId = getUserIdFromHeader(authHeader);
         return ResponseEntity.ok(
                 ApiResponse.success(analyticsService.getTradeMfeAnalysis(userId, tradeId)));
+    }
+
+    @GetMapping("/missed-trades")
+    public ResponseEntity<?> getMissedTrades(@RequestHeader("Authorization") String authHeader) {
+        Long userId = getUserIdFromHeader(authHeader);
+        Map<String, Object> result = new HashMap<>();
+        result.put("comparison", analyticsService.getMissedTradeComparison(userId));
+        result.put("reasonBreakdown", analyticsService.getMissedReasonBreakdown(userId));
+        result.put("confidenceBreakdown", analyticsService.getMissedConfidenceBreakdown(userId));
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 }

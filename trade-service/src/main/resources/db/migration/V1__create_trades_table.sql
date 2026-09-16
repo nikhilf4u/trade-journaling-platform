@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS trades (
     target DECIMAL(15,2),
     mfe DECIMAL(15,2),
     mae DECIMAL(15,2),
+    is_missed BOOLEAN NOT NULL DEFAULT FALSE,
+    missed_reason_type VARCHAR(50),
+    missed_reason VARCHAR(500),
+    confidence_level INT,
     pnl DECIMAL(15,2) GENERATED ALWAYS AS (
                                               CASE
                                               WHEN direction = 'BUY'  THEN (exit_price - entry_price) * quantity
@@ -32,7 +36,8 @@ CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id);
 CREATE INDEX IF NOT EXISTS idx_trades_market ON trades(market);
 CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol);
 CREATE INDEX IF NOT EXISTS idx_trades_entry_date ON trades(entry_date);
-
+CREATE INDEX IF NOT EXISTS idx_trades_is_missed ON trades(is_missed);
+CREATE INDEX IF NOT EXISTS idx_trades_user_missed ON trades(user_id, is_missed);
 -- Screenshots table
 CREATE TABLE IF NOT EXISTS trade_screenshots (
                                                  id BIGSERIAL PRIMARY KEY,

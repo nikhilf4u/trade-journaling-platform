@@ -21,6 +21,7 @@ import {
   FallOutlined,
   SafetyOutlined,
   WarningOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import { AimOutlined } from '@ant-design/icons';
 import {
@@ -618,6 +619,125 @@ export const Analytics: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* ============================================ */}
+      {/* ⭐ KPI Row — Missed Trades Analysis */}
+      {/* ============================================ */}
+      {(summary.missed_count > 0 || summary.taken_count > 0) && (
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={24} sm={12} md={6} className="fade-in-up stagger-1">
+            <Card className="card-lift">
+              <AnimatedStatistic
+                title={
+                  <Space>
+                    Missed Trade Rate
+                    <AntTooltip title="Percentage of analyzed setups you didn't take. High rate = analysis paralysis or fear.">
+                      <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={Number(summary.missed_rate || 0)}
+                suffix="%"
+                precision={1}
+                prefix={<EyeOutlined />}
+                valueStyle={{
+                  color:
+                    Number(summary.missed_rate) <= 20
+                      ? '#52c41a'
+                      : Number(summary.missed_rate) <= 50
+                      ? '#faad14'
+                      : '#ff4d4f',
+                }}
+              />
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {summary.missed_count || 0} of {(summary.missed_count || 0) + (summary.taken_count || 0)} setups
+              </Text>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={6} className="fade-in-up stagger-2">
+            <Card className="card-lift">
+              <AnimatedStatistic
+                title={
+                  <Space>
+                    Missed Win Rate
+                    <AntTooltip title="Win rate of trades you analyzed but didn't take. Tells you if your analysis was right.">
+                      <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={Number(summary.missed_win_rate || 0)}
+                suffix="%"
+                precision={1}
+                valueStyle={{
+                  color:
+                    Number(summary.missed_win_rate) >= 60
+                      ? '#ff4d4f'  // HIGH = bad — you missed good trades!
+                      : Number(summary.missed_win_rate) >= 40
+                      ? '#faad14'
+                      : '#52c41a',
+                }}
+              />
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {summary.missed_wins || 0} would have won
+              </Text>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={6} className="fade-in-up stagger-3">
+            <Card className="card-lift">
+              <AnimatedStatistic
+                title={
+                  <Space>
+                    Missed Opportunity P&L
+                    <AntTooltip title="Total P&L you would have made from the trades you didn't take. This is your opportunity cost.">
+                      <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={Number(summary.missed_pnl || 0)}
+                precision={2}
+                valueStyle={{
+                  color: Number(summary.missed_pnl) > 0 ? '#ff4d4f' : '#52c41a',
+                }}
+              />
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                Real P&L: {Number(summary.taken_pnl || 0).toFixed(2)}
+              </Text>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={6} className="fade-in-up stagger-4">
+            <Card className="card-lift">
+              <AnimatedStatistic
+                title={
+                  <Space>
+                    Analysis Edge
+                    <AntTooltip title="Missed win rate vs Taken win rate. If missed > taken, your analysis is better than your execution.">
+                      <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+                    </AntTooltip>
+                  </Space>
+                }
+                value={
+                  Number(summary.missed_win_rate || 0) -
+                  Number(summary.taken_win_rate || 0)
+                }
+                suffix="%"
+                precision={1}
+                valueStyle={{
+                  color:
+                    Number(summary.missed_win_rate) > Number(summary.taken_win_rate)
+                      ? '#ff4d4f'
+                      : '#52c41a',
+                }}
+              />
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                Missed {Number(summary.missed_win_rate || 0).toFixed(0)}% vs Taken {Number(summary.taken_win_rate || 0).toFixed(0)}%
+              </Text>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* ============================================ */}
       {/* Optimal Stop Suggestion Card */}

@@ -774,4 +774,70 @@ public interface AnalyticsRepository extends JpaRepository<Trade, Long> {
     WHERE mae_in_r IS NOT NULL
     """, nativeQuery = true)
     Map<String, Object> getOptimalStopSuggestion(@Param("userId") Long userId);
+
+    // ============================================================
+// 📊 MISSED TRADE ANALYTICS
+// ============================================================
+
+    @Query(value = """
+    WITH taken AS (
+        SELECT COUNT(*) AS cnt, COALESCE(SUM(pnl), 0) AS total_pnl,
+               SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) AS wins,
+               ROUND(AVG(pnl)::NUMERIC, 2) AS avg_pnl
+        FROM trades WHERE user_id = :userId AND is_missed = false
+    ),
+    missed AS (
+        SELECT COUNT(*) AS cnt, COALESCE(SUM(pnl), 0) AS total_pnl,
+               SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) AS wins,
+               ROUND(AVG(pnl)::NUMERIC, 2) AS avg_pnl
+        FROM trades WHERE user_id = :userId AND is_missed = true
+    )
+    SELECT 
+        taken.cnt AS taken_count,
+        taken.total_pnl AS taken_pnl,
+        taken.wins AS taken_wins,
+        taken.avg_pnl AS taken_avg_pnl,
+        missed.cnt AS missed_count,
+        missed.total_pnl AS missed_pnl,
+        missed.wins AS missed_wins,
+        missed.avg_pnl AS missed_avg_pnl,
+        CASE WHEN (taken.cnt + missed.cnt) = 0 THEN 0
+             ELSE ROUND((missed.cnt * 100.0 / (taken.cnt + missed.cnt))::NUMERIC, 1)
+        END AS missed_rate,
+        CASE WHEN missed.cnt = 0 THEN 0
+             ELSE ROUND((missed.wins * 100.0 / missed.cnt)::NUMERIC, 1)
+        END AS missed_win_rate,
+        CASE WHEN taken.cnt = 0 THEN 0
+             ELSE ROUND((taken.wins * 100.0 / taken.cnt)::NUMERIC, 1)
+        END AS taken_win_rate
+    FROM taken, missed
+    """, nativeQuery = true)
+    Map<String, Object> getMissedTradeComparison(@Param("userId") Long userId);
+
+    @Query(value = """
+    SELECT 
+        COALESCE(missed_reason_type, 'UNKNOWN') AS reason_type,
+        COUNT(*) AS count,
+        ROUND(SUM(pnl)::NUMERIC, 2) AS total_pnl,
+        SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) AS wins,
+        ROUND((SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*))::NUMERIC, 1) AS win_rate
+    FROM trades
+    WHERE user_id = :userId AND is_missed = true
+    GROUP BY missed_reason_type
+    ORDER BY count DESC
+    """, nativeQuery = true)
+    List<Map<String, Object>> getMissedReasonBreakdown(@Param("userId") Long userId);
+
+    @Query(value = """
+    SELECT 
+        confidence_level,
+        COUNT(*) AS count,
+        ROUND(SUM(pnl)::NUMERIC, 2) AS total_pnl,
+        ROUND((SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*))::NUMERIC, 1) AS win_rate
+    FROM trades
+    WHERE user_id = :userId AND is_missed = true AND confidence_level IS NOT NULL
+    GROUP BY confidence_level
+    ORDER BY confidence_level
+    """, nativeQuery = true)
+    List<Map<String, Object>> getMissedConfidenceBreakdown(@Param("userId") Long userId);
 }

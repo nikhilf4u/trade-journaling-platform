@@ -11,11 +11,17 @@ import {
   Upload,
   Space,
   Tag,
+  Switch,
+  Radio,
+  Tooltip,
+  Typography,
 } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import dayjs from 'dayjs';
 import { tradeApi, Trade } from '../services/tradeApi';
+
+const { Text } = Typography;
 
 interface Props {
   open: boolean;
@@ -60,6 +66,9 @@ export const TradeFormModal: React.FC<Props> = ({
   const [removedScreenshotIds, setRemovedScreenshotIds] = useState<number[]>([]);
   const isEditing = !!editingTrade;
 
+  // ⭐ Watch the isMissed toggle to conditionally render the missed section
+  const isMissed = Form.useWatch('isMissed', form);
+
   // ----------------------------------------------------------
   // Populate form + existing screenshots when editing
   // ----------------------------------------------------------
@@ -69,6 +78,8 @@ export const TradeFormModal: React.FC<Props> = ({
         ...editingTrade,
         entryDate: editingTrade.entryDate ? dayjs(editingTrade.entryDate) : null,
         exitDate: editingTrade.exitDate ? dayjs(editingTrade.exitDate) : null,
+        // ⭐ Ensure missed fields are populated (default to false if missing)
+        isMissed: editingTrade.isMissed ?? false,
       });
 
       // ⭐ Encode the DB id into the uid: "existing-<id>"
@@ -92,6 +103,7 @@ export const TradeFormModal: React.FC<Props> = ({
         instrumentType: 'EQUITY',
         quantity: 1,
         longTimeFrameBias: 'NEUTRAL',
+        isMissed: false,
       });
       setFileList([]);
       setRemovedScreenshotIds([]);
@@ -145,12 +157,17 @@ export const TradeFormModal: React.FC<Props> = ({
         quoteCurrency: values.quoteCurrency,
         stoploss: values.stoploss,
         target: values.target,
-        mfe: values.mfe,                    // ⭐ NEW
-        mae: values.mae,                    // ⭐ NEW
+        mfe: values.mfe,
+        mae: values.mae,
         longTimeFrameBias: values.longTimeFrameBias,
         entryDate: values.entryDate.toISOString(),
         exitDate: values.exitDate.toISOString(),
         notes: values.notes,
+        // ⭐ NEW — Missed trade fields
+        isMissed: values.isMissed || false,
+        missedReasonType: values.missedReasonType,
+        missedReason: values.missedReason,
+        confidenceLevel: values.confidenceLevel,
       };
 
       let savedTrade: Trade;
@@ -175,8 +192,8 @@ export const TradeFormModal: React.FC<Props> = ({
       // 2. Upload new screenshots
       if (savedTrade.id) {
         const newFiles: File[] = fileList
-            .map((f) => f.originFileObj as unknown as File)
-            .filter((f): f is File => !!f);
+          .map((f) => f.originFileObj as unknown as File)
+          .filter((f): f is File => !!f);
         if (newFiles.length > 0) {
           await tradeApi.uploadScreenshots(savedTrade.id, newFiles);
         }
@@ -229,6 +246,93 @@ export const TradeFormModal: React.FC<Props> = ({
               </Tag>
               <Tag color="green">In UI: {fileList.length}</Tag>
               <Tag color="red">To Delete: {removedScreenshotIds.length}</Tag>
+            </Space>
+          </div>
+        )}
+
+        {/* ============================================ */}
+        {/* ⭐ Taken vs Missed Toggle */}
+        {/* ============================================ */}
+        <Form.Item
+          label={
+            <Space>
+              <Text strong>Trade Status</Text>
+              <Tooltip title="Mark trades you analyzed but didn't take. Useful for measuring analysis quality vs execution.">
+                <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+              </Tooltip>
+            </Space>
+          }
+          name="isMissed"
+          valuePropName="checked"
+          initialValue={false}
+        >
+          <Switch
+            checkedChildren="👀 Missed (Analysis Only)"
+            unCheckedChildren="✅ Taken (Real Trade)"
+            size="default"
+          />
+        </Form.Item>
+
+        {/* ⭐ Missed Trade Details (shown only when isMissed === true) */}
+        {isMissed && (
+          <div
+            style={{
+              padding: 16,
+              background: '#fff7e6',
+              borderRadius: 8,
+              border: '1px solid #ffd591',
+              marginBottom: 16,
+            }}
+          >
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Text strong style={{ color: '#d46b08' }}>
+                📋 Why did you miss this trade?
+              </Text>
+
+              <Form.Item
+                label="Reason Type"
+                name="missedReasonType"
+                style={{ marginBottom: 8 }}
+              >
+                <Select
+                  placeholder="Select a reason..."
+                  size="large"
+                  options={[
+                    { label: '🎯 No clear setup', value: 'NO_SETUP' },
+                    { label: '😬 Hesitated too long', value: 'HESITATED' },
+                    { label: '📏 Broke my own rules', value: 'RULE_VIOLATION' },
+                    { label: '🛑 Hit daily risk limit', value: 'RISK_LIMIT' },
+                    { label: '📱 Was distracted / away', value: 'DISTRACTION' },
+                    { label: '💭 Other', value: 'OTHER' },
+                  ]}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Confidence Level (1-5)"
+                name="confidenceLevel"
+                style={{ marginBottom: 8 }}
+                tooltip="How confident were you that this was a valid setup?"
+              >
+                <Radio.Group>
+                  <Radio.Button value={1}>1</Radio.Button>
+                  <Radio.Button value={2}>2</Radio.Button>
+                  <Radio.Button value={3}>3</Radio.Button>
+                  <Radio.Button value={4}>4</Radio.Button>
+                  <Radio.Button value={5}>5</Radio.Button>
+                </Radio.Group>
+              </Form.Item>
+
+              <Form.Item
+                label="Additional Notes"
+                name="missedReason"
+                style={{ marginBottom: 0 }}
+              >
+                <Input.TextArea
+                  rows={2}
+                  placeholder="What happened? What will you do differently next time?"
+                />
+              </Form.Item>
             </Space>
           </div>
         )}
@@ -361,7 +465,11 @@ export const TradeFormModal: React.FC<Props> = ({
             />
           </Form.Item>
 
-          <Form.Item label="Quote Currency" name="quoteCurrency" rules={[{ required: true }]}>
+          <Form.Item
+            label="Quote Currency"
+            name="quoteCurrency"
+            rules={[{ required: true }]}
+          >
             <Select
               size="large"
               options={[

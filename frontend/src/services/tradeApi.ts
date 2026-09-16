@@ -28,16 +28,22 @@ export interface Trade {
   screenshots?: TradeScreenshot[];
   longTimeFrameBias?: string;
   createdAt?: string;
+  isMissed?: boolean;
+  missedReasonType?: string;
+  missedReason?: string;
+  confidenceLevel?: number;
 }
 
 const unwrap = <T>(response: any): T => response.data?.data ?? response.data;
 
 export const tradeApi = {
-  getAll: async (market?: string): Promise<Trade[]> => {
-    const params = market ? { market } : {};
-    const response = await apiClient.get('/trades', { params });
-    return unwrap<Trade[]>(response);
-  },
+getAll: async (market?: string, type?: 'taken' | 'missed'): Promise<Trade[]> => {
+  const params: any = {};
+  if (market) params.market = market;
+  if (type) params.type = type;
+  const response = await apiClient.get('/trades', { params });
+  return unwrap<Trade[]>(response);
+},
 
   getById: async (id: number): Promise<Trade> => {
     const response = await apiClient.get(`/trades/${id}`);

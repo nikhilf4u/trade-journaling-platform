@@ -27,6 +27,7 @@ import {
   SafetyOutlined,
   TrophyOutlined,
   FireOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import type { Trade } from '../services/tradeApi';
 import dayjs from 'dayjs';
@@ -175,6 +176,7 @@ export const TradeDetailDrawer: React.FC<Props> = ({
           </Tag>
           <Tag color="blue">{trade.market}</Tag>
           {trade.instrumentType && <Tag>{trade.instrumentType}</Tag>}
+          {trade.isMissed && <Tag color="orange">👀 Missed</Tag>}
         </Space>
       }
       placement="right"
@@ -193,6 +195,39 @@ export const TradeDetailDrawer: React.FC<Props> = ({
         </Space>
       }
     >
+      {/* ============================================ */}
+      {/* ⭐ Missed Trade Alert */}
+      {/* ============================================ */}
+      {trade.isMissed && (
+        <Alert
+          type="warning"
+          showIcon
+          icon={<EyeOutlined />}
+          message="👀 Missed Trade (Analysis Only)"
+          description={
+            <div>
+              {trade.missedReasonType && (
+                <div>
+                  <strong>Reason:</strong>{' '}
+                  {trade.missedReasonType.replace('_', ' ')}
+                </div>
+              )}
+              {trade.confidenceLevel && (
+                <div>
+                  <strong>Confidence:</strong> {trade.confidenceLevel}/5
+                </div>
+              )}
+              {trade.missedReason && (
+                <div style={{ marginTop: 4 }}>
+                  <strong>Notes:</strong> {trade.missedReason}
+                </div>
+              )}
+            </div>
+          }
+          style={{ marginBottom: 20 }}
+        />
+      )}
+
       {/* ============================================ */}
       {/* P&L Hero Card */}
       {/* ============================================ */}

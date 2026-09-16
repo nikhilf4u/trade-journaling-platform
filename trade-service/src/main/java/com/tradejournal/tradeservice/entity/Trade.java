@@ -58,6 +58,20 @@ public class Trade extends BaseEntity {
     @Column(name = "mae")
     private BigDecimal mae;
 
+    @Column(name = "is_missed", nullable = false)
+    @Builder.Default
+    private Boolean isMissed = false;
+
+    @Column(name = "missed_reason_type", length = 50)
+    private String missedReasonType;
+    // NO_SETUP, HESITATED, RULE_VIOLATION, RISK_LIMIT, DISTRACTION, OTHER
+
+    @Column(name = "missed_reason", length = 500)
+    private String missedReason;
+
+    @Column(name = "confidence_level")
+    private Integer confidenceLevel; // 1-5
+
     // ⭐ NEW: Long-Time Frame Bias (higher timeframe view)
     @Column(length = 30)
     private String longTimeFrameBias;

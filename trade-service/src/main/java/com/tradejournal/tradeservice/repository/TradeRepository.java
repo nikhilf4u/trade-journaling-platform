@@ -10,4 +10,6 @@ import java.util.List;
 public interface TradeRepository extends JpaRepository<Trade, Long> {
     List<Trade> findByUserIdOrderByEntryDateDesc(Long userId);
     List<Trade> findByUserIdAndMarketOrderByEntryDateDesc(Long userId, String market);
+    List<Trade> findByUserIdAndIsMissedOrderByEntryDateDesc(Long userId, Boolean isMissed);
+    List<Trade> findByUserIdAndMarketAndIsMissedOrderByEntryDateDesc(Long userId, String market, Boolean isMissed);
 }

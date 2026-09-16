@@ -341,6 +341,24 @@ public class AnalyticsService {
         return normalizeMap(analyticsRepository.getTradeMfeAnalysis(userId, tradeId));
     }
 
+    @Cacheable(value = "missedTradeComparison", key = "#userId")
+    public Map<String, Object> getMissedTradeComparison(Long userId) {
+        log.info("🔍 DB HIT: Missed trade comparison for user {}", userId);
+        return normalizeMap(analyticsRepository.getMissedTradeComparison(userId));
+    }
+
+    @Cacheable(value = "missedReasonBreakdown", key = "#userId")
+    public List<Map<String, Object>> getMissedReasonBreakdown(Long userId) {
+        log.info("🔍 DB HIT: Missed reason breakdown for user {}", userId);
+        return normalizeList(analyticsRepository.getMissedReasonBreakdown(userId));
+    }
+
+    @Cacheable(value = "missedConfidenceBreakdown", key = "#userId")
+    public List<Map<String, Object>> getMissedConfidenceBreakdown(Long userId) {
+        log.info("🔍 DB HIT: Missed confidence breakdown for user {}", userId);
+        return normalizeList(analyticsRepository.getMissedConfidenceBreakdown(userId));
+    }
+
     // ============================================================
     // FULL DASHBOARD
     // ============================================================
@@ -367,6 +385,7 @@ public class AnalyticsService {
         summary.putAll(getMfeVsTarget(userId));
         summary.putAll(getMaeStats(userId));
         summary.putAll(getOptimalStopSuggestion(userId));
+        summary.putAll(getMissedTradeComparison(userId));
 
         dashboard.put("summary", summary);
         dashboard.put("equityCurve", getEquityCurve(userId));
@@ -375,6 +394,8 @@ public class AnalyticsService {
         dashboard.put("biasPerformance", getBiasPerformance(userId));
         dashboard.put("rMultipleDistribution", getRMultipleDistribution(userId));
         dashboard.put("dayOfWeekPerformance", getDayOfWeekPerformance(userId));
+        dashboard.put("missedReasonBreakdown", getMissedReasonBreakdown(userId));
+        dashboard.put("missedConfidenceBreakdown", getMissedConfidenceBreakdown(userId));
 
         return dashboard;
     }
@@ -392,7 +413,9 @@ public class AnalyticsService {
                     "targetHitStats", "missedRAnalysis", "mfeVsTarget", "captureRatio",
                     "overtradingStats", "riskConsistency", "exitDiscipline", "revengeTrading",
                     "maeStats", "optimalStopSuggestion",
-                    "calendarData"
+                    "calendarData","missedTradeComparison",
+                    "missedReasonBreakdown",
+                    "missedConfidenceBreakdown"
             },
             key = "#userId"
     )

@@ -10,6 +10,8 @@ import {
   Image,
   Tooltip,
   Modal,
+  Radio,
+  Tag,
 } from 'antd';
 import {
   PlusOutlined,
@@ -41,17 +43,22 @@ export const Trades: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [marketFilter, setMarketFilter] = useState<string | undefined>(undefined);
+  // ⭐ NEW: taken / missed / all filter
+  const [typeFilter, setTypeFilter] = useState<'all' | 'taken' | 'missed'>('all');
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
-const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const { mode } = useTheme();
-  const hasFilter = !!marketFilter;
+  const hasFilter = !!marketFilter || typeFilter !== 'all';
+
   // ----------------------------------------------------------
   // Load trades
   // ----------------------------------------------------------
   const loadTrades = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await tradeApi.getAll(marketFilter);
+      // ⭐ Pass undefined when 'all' so the API returns everything
+      const type = typeFilter === 'all' ? undefined : typeFilter;
+      const data = await tradeApi.getAll(marketFilter, type);
       setTrades(data);
     } catch (err: any) {
       message.error('Failed to load trades');
@@ -59,7 +66,7 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
     } finally {
       setLoading(false);
     }
-  }, [marketFilter]);
+  }, [marketFilter, typeFilter]);
 
   useEffect(() => {
     loadTrades();
@@ -74,7 +81,10 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
       notifySuccess('Trade Deleted', `"${symbol}" has been removed from your journal.`);
       loadTrades();
     } catch (err: any) {
-      notifyError('Failed to Delete Trade', err.response?.data?.error || 'An error occurred while deleting the trade.');
+      notifyError(
+        'Failed to Delete Trade',
+        err.response?.data?.error || 'An error occurred while deleting the trade.'
+      );
     }
   };
 
@@ -90,6 +100,19 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
           params.value ? new Date(params.value).toLocaleDateString() : '—',
         filter: 'agDateColumnFilter',
         width: 110,
+      },
+      // ⭐ NEW: Status column (Taken vs Missed)
+      {
+        field: 'isMissed',
+        headerName: 'Status',
+        width: 110,
+        filter: false,
+        cellRenderer: (params: ICellRendererParams) => {
+          if (params.value === true) {
+            return <Tag color="orange">👀 Missed</Tag>;
+          }
+          return <Tag color="green">✅ Taken</Tag>;
+        },
       },
       {
         field: 'market',
@@ -110,13 +133,13 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
         ),
         width: 100,
       },
-        {
-            field: 'symbol',
-            headerName: 'Symbol',
-            filter: true,
-            width: 110,
-            cellStyle: () => ({ fontWeight: 'bold' }),
-        },
+      {
+        field: 'symbol',
+        headerName: 'Symbol',
+        filter: true,
+        width: 110,
+        cellStyle: () => ({ fontWeight: 'bold' }),
+      },
       {
         field: 'direction',
         headerName: 'Direction',
@@ -186,42 +209,42 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
         type: 'numericColumn',
       },
       {
-  headerName: 'Missed R',
-  width: 100,
-  valueGetter: (params) => {
-    const t = params.data;
-    if (!t?.mfe || !t?.stoploss || !t?.entryPrice) return null;
-    const risk = Math.abs(t.entryPrice - t.stoploss);
-    if (risk === 0) return null;
-    if (t.direction === 'BUY') return (t.mfe - t.exitPrice) / risk;
-    return (t.exitPrice - t.mfe) / risk;
-  },
-  cellRenderer: (params: ICellRendererParams) => {
-    const val = params.value;
-    if (val == null) return <Text type="secondary">—</Text>;
-    const isPositive = val > 0;
-    return (
-      <Tooltip
-        title={
-          isPositive
-            ? `You could have made ${val.toFixed(2)}R more`
-            : `You captured well (or price never went higher)`
-        }
-      >
-        <span
-          style={{
-            color: isPositive ? '#faad14' : '#52c41a',
-            fontWeight: 600,
-            fontSize: 12,
-          }}
-        >
-          {isPositive ? '+' : ''}
-          {val.toFixed(2)}R
-        </span>
-      </Tooltip>
-    );
-  },
-},
+        headerName: 'Missed R',
+        width: 100,
+        valueGetter: (params) => {
+          const t = params.data;
+          if (!t?.mfe || !t?.stoploss || !t?.entryPrice) return null;
+          const risk = Math.abs(t.entryPrice - t.stoploss);
+          if (risk === 0) return null;
+          if (t.direction === 'BUY') return (t.mfe - t.exitPrice) / risk;
+          return (t.exitPrice - t.mfe) / risk;
+        },
+        cellRenderer: (params: ICellRendererParams) => {
+          const val = params.value;
+          if (val == null) return <Text type="secondary">—</Text>;
+          const isPositive = val > 0;
+          return (
+            <Tooltip
+              title={
+                isPositive
+                  ? `You could have made ${val.toFixed(2)}R more`
+                  : `You captured well (or price never went higher)`
+              }
+            >
+              <span
+                style={{
+                  color: isPositive ? '#faad14' : '#52c41a',
+                  fontWeight: 600,
+                  fontSize: 12,
+                }}
+              >
+                {isPositive ? '+' : ''}
+                {val.toFixed(2)}R
+              </span>
+            </Tooltip>
+          );
+        },
+      },
       {
         field: 'longTimeFrameBias',
         headerName: 'HTF Bias',
@@ -299,37 +322,38 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
                 setModalOpen(true);
               }}
             />
-            
-<Button
-  icon={<DeleteOutlined />}
-  size="small"
-  danger
-  onClick={() => {
-    Modal.confirm({
-      title: (
-        <Space>
-          <DeleteOutlined style={{ color: '#ff4d4f' }} />
-          <span>Delete Trade?</span>
-        </Space>
-      ),
-      content: (
-        <div>
-          <p style={{ marginBottom: 8 }}>
-            Are you sure you want to delete <strong>{params.data.symbol}</strong>?
-          </p>
-          <p style={{ color: '#ff4d4f', fontSize: 12, margin: 0 }}>
-            ⚠️ This will permanently remove the trade and its screenshots. This action cannot be undone.
-          </p>
-        </div>
-      ),
-      okText: 'Delete Trade',
-      okButtonProps: { danger: true },
-      cancelText: 'Cancel',
-      onOk: () => handleDelete(params.data.id, params.data.symbol),
-      centered: true,
-    });
-  }}
-/>
+            <Button
+              icon={<DeleteOutlined />}
+              size="small"
+              danger
+              onClick={() => {
+                Modal.confirm({
+                  title: (
+                    <Space>
+                      <DeleteOutlined style={{ color: '#ff4d4f' }} />
+                      <span>Delete Trade?</span>
+                    </Space>
+                  ),
+                  content: (
+                    <div>
+                      <p style={{ marginBottom: 8 }}>
+                        Are you sure you want to delete{' '}
+                        <strong>{params.data.symbol}</strong>?
+                      </p>
+                      <p style={{ color: '#ff4d4f', fontSize: 12, margin: 0 }}>
+                        ⚠️ This will permanently remove the trade and its
+                        screenshots. This action cannot be undone.
+                      </p>
+                    </div>
+                  ),
+                  okText: 'Delete Trade',
+                  okButtonProps: { danger: true },
+                  cancelText: 'Cancel',
+                  onOk: () => handleDelete(params.data.id, params.data.symbol),
+                  centered: true,
+                });
+              }}
+            />
           </Space>
         ),
       },
@@ -344,13 +368,24 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
     <PageContainer
       header={{
         title: (
-      <Space>
-        <span className="live-dot" />
-        <span>📋 My Trades</span>
-      </Space>
-    ),
+          <Space>
+            <span className="live-dot" />
+            <span>📋 My Trades</span>
+          </Space>
+        ),
         subTitle: `${trades.length} trade${trades.length !== 1 ? 's' : ''} logged`,
         extra: [
+          // ⭐ NEW: All / Taken / Missed segmented control
+          <Radio.Group
+            key="type"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            buttonStyle="solid"
+          >
+            <Radio.Button value="all">All</Radio.Button>
+            <Radio.Button value="taken">✅ Taken</Radio.Button>
+            <Radio.Button value="missed">👀 Missed</Radio.Button>
+          </Radio.Group>,
           <Select
             key="filter"
             placeholder="Filter by market"
@@ -376,75 +411,83 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
               setModalOpen(true);
             }}
           >
-            Log New Trade
+            Log Trade
           </Button>,
         ],
       }}
     >
-     <Card bodyStyle={trades.length === 0 ? { padding: 0 } : { padding: 0 }}>
-{trades.length === 0 && !loading ? (
-  hasFilter ? (
-    <EmptyState
-      icon="🔍"
-      title={`No ${marketFilter} Trades`}
-      description={`You don't have any trades in the ${marketFilter} market. Try clearing the filter or logging a new trade.`}
-      actionLabel="Clear Filter"
-      onAction={() => setMarketFilter(undefined)}
-    />
-  ) : (
-    <EmptyState
-      icon="📝"
-      title="No Trades Yet"
-      description="Start logging your trades to see analytics, patterns, and performance insights."
-      actionLabel="+ Log Your First Trade"
-      onAction={() => {
-        setEditingTrade(null);
-        setModalOpen(true);
-      }}
-    />
-  )
-) : (
-    <div
-      className={mode === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}
-      style={{ height: 600, width: '100%' }}
-    >
-      <AgGridReact<Trade>
-  rowData={trades}
-  columnDefs={columnDefs}  
-  loading={loading}
-  pagination={true}
-  paginationPageSize={20}
-  paginationPageSizeSelector={[10, 20, 50, 100]}
-  defaultColDef={{
-    resizable: true,
-    sortable: true,
-    filter: true,
-  }}
-  animateRows={true}
-  suppressCellFocus={true}
-  onRowClicked={(event) => {
-    // Don't open drawer if the click was on an action button or image
-    if (event.event?.target instanceof HTMLElement) {
-      const target = event.event.target;
-      // Skip if user clicked on button, image, or popconfirm
-      if (
-        target.closest('button') ||
-        target.closest('.ant-image') ||
-        target.closest('.ant-popover')
-      ) {
-        return;
-      }
-    }
-      if (event.data) {
-          setSelectedTrade(event.data);
-      }
-    setDetailDrawerOpen(true);
-  }}
-  rowStyle={{ cursor: 'pointer' }}
-/>
-    </div>
-  )}
-</Card>
+      <Card bodyStyle={trades.length === 0 ? { padding: 0 } : { padding: 0 }}>
+        {trades.length === 0 && !loading ? (
+          hasFilter ? (
+            <EmptyState
+              icon="🔍"
+              title={`No ${
+                typeFilter !== 'all'
+                  ? typeFilter === 'missed'
+                    ? 'Missed'
+                    : 'Taken'
+                  : ''
+              } ${marketFilter || ''} Trades`.trim()}
+              description={`You don't have any trades matching the current filter. Try clearing the filters or logging a new trade.`}
+              actionLabel="Clear Filters"
+              onAction={() => {
+                setMarketFilter(undefined);
+                setTypeFilter('all');
+              }}
+            />
+          ) : (
+            <EmptyState
+              icon="📝"
+              title="No Trades Yet"
+              description="Start logging your trades to see analytics, patterns, and performance insights."
+              actionLabel="+ Log Your First Trade"
+              onAction={() => {
+                setEditingTrade(null);
+                setModalOpen(true);
+              }}
+            />
+          )
+        ) : (
+          <div
+            className={mode === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}
+            style={{ height: 600, width: '100%' }}
+          >
+            <AgGridReact<Trade>
+              rowData={trades}
+              columnDefs={columnDefs}
+              loading={loading}
+              pagination={true}
+              paginationPageSize={20}
+              paginationPageSizeSelector={[10, 20, 50, 100]}
+              defaultColDef={{
+                resizable: true,
+                sortable: true,
+                filter: true,
+              }}
+              animateRows={true}
+              suppressCellFocus={true}
+              onRowClicked={(event) => {
+                // Don't open drawer if the click was on an action button or image
+                if (event.event?.target instanceof HTMLElement) {
+                  const target = event.event.target;
+                  if (
+                    target.closest('button') ||
+                    target.closest('.ant-image') ||
+                    target.closest('.ant-popover')
+                  ) {
+                    return;
+                  }
+                }
+                if (event.data) {
+                  setSelectedTrade(event.data);
+                }
+                setDetailDrawerOpen(true);
+              }}
+              rowStyle={{ cursor: 'pointer' }}
+            />
+          </div>
+        )}
+      </Card>
       <TradeFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -452,24 +495,24 @@ const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
         editingTrade={editingTrade}
       />
       <TradeDetailDrawer
-  open={detailDrawerOpen}
-  trade={selectedTrade}
-  onClose={() => {
-    setDetailDrawerOpen(false);
-    setSelectedTrade(null);
-  }}
-  onEdit={(trade) => {
-    setDetailDrawerOpen(false);
-    setEditingTrade(trade);
-    setModalOpen(true);
-  }}
-  onDelete={(trade) => {
-    setDetailDrawerOpen(false);
-    if (trade.id) {
-      handleDelete(trade.id, trade.symbol);
-    }
-  }}
-/>
+        open={detailDrawerOpen}
+        trade={selectedTrade}
+        onClose={() => {
+          setDetailDrawerOpen(false);
+          setSelectedTrade(null);
+        }}
+        onEdit={(trade) => {
+          setDetailDrawerOpen(false);
+          setEditingTrade(trade);
+          setModalOpen(true);
+        }}
+        onDelete={(trade) => {
+          setDetailDrawerOpen(false);
+          if (trade.id) {
+            handleDelete(trade.id, trade.symbol);
+          }
+        }}
+      />
     </PageContainer>
   );
 };
